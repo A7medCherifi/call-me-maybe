@@ -1,33 +1,51 @@
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, ValidationError
 import json
 
 class CallingFunction(BaseModel):
-	prompt: str = Field(min_length=1)
-
-	@model_validator(mode='after')
-	def validation_model(self) -> 'CallingFunction':
-		prompt = self.prompt.strip()
-		if len(prompt) == 0:
-			raise ValueError("Empty Input!")
-		return self
+	prompt: str = Field(min_length=1, str_strip_whitespace=True)
 
 
-def parse_calling_function(file_name: str):
+class ParameterType(BaseModel):
+	type: str
+
+
+class DefinitionFunction(BaseModel):
+	name: str
+	description: str
+	parameters: dict[str, ParameterType]
+	returns: dict[str, str]
+
+
+def parse_calling_function(file_name: str) -> list:
 	try:
 		with open(file_name, 'r') as f:
-			data2 = json.load(f)
-		for e in data2:
-			CallingFunction(**e)
-	except FileNotFoundError:
-		print("File not found stupid!")
-		exit(1)
-	except ValidationError:
-		print("Invalid prompt!")
-		exit(1)
-	except Exception as e:
+			data = json.load(f)
+		valid = []
+		for e in data:
+			try:
+				prompt = CallingFunction(**e)
+				valid.append(prompt)
+			except ValidationError:
+				print("Invalid prompt!")
+				continue
+		return valid
+	except (FileNotFoundError, json.JSONDecodeError, Exception) as e:
 		print(f"Error: {e}")
-		exit(1)
+		return []
 
-
-if __name__ == "__main__":
-	parse_calling_function('function_calling_tests.json')
+def parse_definition_function(file_name: str):
+	try:
+		with open(file_name, 'r') as f:
+			data = json.load(f)
+		valid = []
+		for e in data:
+			try:
+				prompt = DefinitionFunction(**e)
+				valid.append(e)
+			except ValidationError:
+				print("Invalid prompt!")
+				continue
+		return valid
+	except (FileNotFoundError, json.JSONDecodeError, Exception) as e:
+		print(f"Error: {e}")
+		return []
