@@ -11,11 +11,13 @@ def test_model(manager, input):
     
     functions = list()
     for fn in manager.definition_functions:
-        functions.append(fn['name'])
+        functions.append({"function name": fn['name'], "function parameters": fn['parameters'], "function description": fn['description']})
     
-    prompt = f"""the function names: {functions},
-input: {input},
-the Answr: the best function name and parameters of it are """
+    prompt = f"""the functions data list: {functions}.
+input text: {input}
+i gonna extract the function name and parameters from the input text based on the functions data list structure.
+Do not copy the types. Extract the actual values from the input text and save the function and parameters on a list
+the Answr: from the input text ony the best function name + parameters are: """
 
     print(f"\nOriginal Prompt: '{input}'\n")
     
@@ -26,7 +28,7 @@ the Answr: the best function name and parameters of it are """
     # tensor_ids[0] grabs the inner array, .tolist() makes it a standard Python list
     input_ids = tensor_ids[0].tolist() 
     
-    max_tokens_to_generate = 10
+    max_tokens_to_generate = 50
     
     for i in range(max_tokens_to_generate):
         # 3. Get the logits (scores) for the next token based on our list of IDs
@@ -55,24 +57,31 @@ the Answr: the best function name and parameters of it are """
         "fn_substitute_string_with_regex": ["source_string", "regex", "replacement"],
     }
 
-    results.update({"prompt": input})
+    # results.update({"prompt": input})
 
-    func = ""
-    data = response.split()
-    for element in data[::-1]:
-        if element.startswith("fn_"):
-            func = element
-            results.update({"name": element})
-            break
+    # func = ""
+    # data = response.split()
+    # rdata = data[::-1]
+    # for element in rdata:
+    #     if element.startswith("fn_"):
+    #         func = element
+    #         results.update({"name": element})
+    #         break
 
-    for element in data[::-1]:
-        if element.startswith("["):
-            parameters = ast.literal_eval(element)
-            keys = source[func]
-            for k, v in zip(keys, parameters):
-                results["parameters"][k] = v
-            break
-    print(results)
+    # results["parameters"] = {}
+    # for element in rdata:
+    #     print(element)
+    #     if element.startswith("["):
+    #         parameters = ast.literal_eval(element)
+    #         keys = source[func]
+    #         for k, v in zip(keys, parameters):
+    #             results["parameters"][k] = v
+    #         break
+    # print(results)
+
+
+
+
     # match = re.search(r"fn_\d+", response)
     # print(match)
     # if not match:
