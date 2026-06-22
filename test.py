@@ -13,17 +13,44 @@ def test_model(manager, input):
     for fn in manager.definition_functions:
         functions.append({"function name": fn['name'], "function parameters": fn['parameters']})
     
-    prompt = f"""the functions data list: {functions}.
-input text: {input}
+    tet = f"""
+FUNCTION DATA LIST:
+    {functions}.
+
+INPUT TEXT: {input}
+
+THE ANSWER BLUEPRINT:
+"['function name', {{parameters}}]."
+
 i gonna extract the function name and parameters from the input text based on the functions data list structure.
 Do not copy the types. Extract the actual values from the input text and save the function and parameters on a list
 and do not re write this prompt just write the answer only.
-the Answr: from the input text ony the best function name + parameters are: """
+the Answr: use THE ANSWER BLUEPRINT as a blueprint and from the input text ony the best function name and parameters are: """
+
+
+    prompt = f"""
+FUNCTION DATA:
+    {functions}
+
+INPUT TEXT:
+    {input}
+
+INSTRUCTIONS:
+    extract the function name and parameters from the input text based on the functions data list structure.
+    Do not copy the types. Extract the actual values from the input text and save the function and parameters on a list
+    and do not re write this prompt just write Answer only.
+    
+THE ANSWER BLUEPRINT:
+    ['function name', {{parameters}}].
+
+ANSWER:
+    from the input text ony the best function name and parameters and use THE ANSWER BLUEPRINT as a blueprint for the the output / your answer:
+"""
 
     print(f"\nOriginal Prompt: '{input}'\n")
     
     # 1. Encode the text into a 2D tensor
-    tensor_ids = model.encode(prompt)
+    tensor_ids = model.encode(tet)
     
     # 2. Convert the 2D tensor into a flat Python list of integers 
     # tensor_ids[0] grabs the inner array, .tolist() makes it a standard Python list
@@ -37,13 +64,20 @@ the Answr: from the input text ony the best function name + parameters are: """
         
         # 4. Use numpy to find the index of the highest score
         next_token_id = int(np.argmax(logits))
+        # if next_token_id == model._tokenizer.eos_token_id:
+        #     print("\n[Stopped naturally by EOS token]")
+        #     break
+        
+        # 6. Decode the sequence to see what it generated so far
+        current_text = model.decode([next_token_id])
         
         # 5. Append the new token ID to our sequence
         input_ids.append(next_token_id)
-        
-        # 6. Decode the sequence to see what it generated so far
-        current_text = model.decode(input_ids)
-        print(f"Step {i+1}: {current_text}")
+        # print(f"Step {i+1}: {current_text}")
+        print(current_text, end="", flush=True)
+        if "." in current_text:
+            print("\n[Stopped by custom period condition]")
+            break
 
     print("\n--- Final Generation ---")
     # print(model.decode(input_ids))
