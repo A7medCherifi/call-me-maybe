@@ -9,9 +9,9 @@ def test_model(manager, input):
     model = Small_LLM_Model()
     results = dict()
     
-    functions = list()
+    functions = ""
     for fn in manager.definition_functions:
-        functions.append({"function name": fn['name'], "function parameters": fn['parameters']})
+        functions += f"- Name: {fn['name']} | Parameters: {fn['parameters']}\n"
     
     tet = f"""
 FUNCTION DATA LIST:
@@ -28,29 +28,41 @@ and do not re write this prompt just write the answer only.
 the Answr: use THE ANSWER BLUEPRINT as a blueprint and from the input text ony the best function name and parameters are: """
 
 
-    prompt = f"""
-FUNCTION DATA:
-    {functions}
+    prompt2 = f"""Task: Extract the correct function name and argument values from the input text.
+Rules:
+1. Output should look like this ['function name', {{parameters}}]
+2. Do not copy parameter types (like 'string' or 'number').
+3. Extract the best function name from Abailable Functions.
+4. Extract actual argument values from the input.
+5. You must output a valid list and add '.' at the end of it and stop immediately.
+6. if you closed the the list with ] add this at the end always: '.'.
 
-INPUT TEXT:
-    {input}
+Available Functions:
+{functions}
 
-INSTRUCTIONS:
-    extract the function name and parameters from the input text based on the functions data list structure.
-    Do not copy the types. Extract the actual values from the input text and save the function and parameters on a list
-    and do not re write this prompt just write Answer only.
+Input Text: "{input}"
+
+Output:
+"""
     
-THE ANSWER BLUEPRINT:
-    ['function name', {{parameters}}].
+    prompt = f"""Task: Extract the correct function name and argument values from the input text.
+Rules:
+1. Output format: ['function name', {{parameters}}]
+2. Do not copy parameter types. Extract actual values.
+3. always the function name starts with 'fn_'
 
-ANSWER:
-    from the input text ony the best function name and parameters and use THE ANSWER BLUEPRINT as a blueprint for the the output / your answer:
+Available Functions:
+{functions}
+
+Input Text: "{input}"
+
+Output:
 """
 
     print(f"\nOriginal Prompt: '{input}'\n")
     
     # 1. Encode the text into a 2D tensor
-    tensor_ids = model.encode(tet)
+    tensor_ids = model.encode(prompt)
     
     # 2. Convert the 2D tensor into a flat Python list of integers 
     # tensor_ids[0] grabs the inner array, .tolist() makes it a standard Python list
@@ -75,7 +87,7 @@ ANSWER:
         input_ids.append(next_token_id)
         # print(f"Step {i+1}: {current_text}")
         print(current_text, end="", flush=True)
-        if "." in current_text:
+        if "]" in current_text:
             print("\n[Stopped by custom period condition]")
             break
 
