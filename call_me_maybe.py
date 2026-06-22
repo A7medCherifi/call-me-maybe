@@ -14,7 +14,7 @@ def main():
 	manager.prompts_calling = prompts_calling
 	# create_template(manager)
 	# print(manager.prompts_calling[0].prompt)
-	test_model(manager,  "What is the square root of 16?")
+	test_model(manager,  "What is the sum of 2 and 3?")
 
 
 if __name__ == "__main__":

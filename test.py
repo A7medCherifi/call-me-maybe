@@ -11,12 +11,13 @@ def test_model(manager, input):
     
     functions = list()
     for fn in manager.definition_functions:
-        functions.append({"function name": fn['name'], "function parameters": fn['parameters'], "function description": fn['description']})
+        functions.append({"function name": fn['name'], "function parameters": fn['parameters']})
     
     prompt = f"""the functions data list: {functions}.
 input text: {input}
 i gonna extract the function name and parameters from the input text based on the functions data list structure.
 Do not copy the types. Extract the actual values from the input text and save the function and parameters on a list
+and do not re write this prompt just write the answer only.
 the Answr: from the input text ony the best function name + parameters are: """
 
     print(f"\nOriginal Prompt: '{input}'\n")
@@ -28,7 +29,7 @@ the Answr: from the input text ony the best function name + parameters are: """
     # tensor_ids[0] grabs the inner array, .tolist() makes it a standard Python list
     input_ids = tensor_ids[0].tolist() 
     
-    max_tokens_to_generate = 50
+    max_tokens_to_generate = 70
     
     for i in range(max_tokens_to_generate):
         # 3. Get the logits (scores) for the next token based on our list of IDs
@@ -42,12 +43,12 @@ the Answr: from the input text ony the best function name + parameters are: """
         
         # 6. Decode the sequence to see what it generated so far
         current_text = model.decode(input_ids)
-        # print(f"Step {i+1}: {current_text}")
+        print(f"Step {i+1}: {current_text}")
 
     print("\n--- Final Generation ---")
     # print(model.decode(input_ids))
-    response = model.decode(input_ids)
-    print(response)
+    # response = model.decode(input_ids)
+    # print(response)
 
     source = {
         "fn_add_numbers": ["a", "b"],
