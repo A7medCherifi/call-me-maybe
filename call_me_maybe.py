@@ -14,7 +14,7 @@ def main():
 	manager.prompts_calling = prompts_calling
 	# create_template(manager)
 	# print(manager.prompts_calling[0].prompt)
-	test_model(manager,  "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'")
+	test_model(manager, "What is the sum of 2 and 3?")
 
 
 if __name__ == "__main__":
