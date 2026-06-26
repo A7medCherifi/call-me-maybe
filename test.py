@@ -22,18 +22,23 @@ def test_model(manager, input):
     results = dict()
     functions = ""
     all_prompts = list()
+
+    inject_parameter_str = ' "parameters": {"'
+    parameter_tensor = model.encode(inject_parameter_str)
+    parameter_ids = parameter_tensor[0].tolist()
+
     for fn in manager.definition_functions:
         functions += f"Name: {fn['name']} | Parameters: {fn['parameters']}\n"
     for element in manager.prompts_calling:
         all_prompts.append(element['prompt'])
     
     for element in all_prompts:
-        prompt = f"""Extract the function name and parameters from the Input Text and return them as a valid JSON object. \
-        Functions available: \
+        prompt = f"""Extract the function name and parameters as a valid JSON object. \
+        Functions: \
             {functions} \
         Example: \
             Input text: What is the sum of 2 and 3? \
-            JSON output: {{"prompt": "What is the sum of 2 and 3?", "name": "fn_add_numbers", "parameters": {{"a": 2.0, "b": 3.0}}}}.\
+            JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
         Rules: \
             1. If a parameter type is a Number, cast it to a float. \
             2. Output ONLY the raw JSON, Do not include conversational filler text. \
@@ -48,29 +53,30 @@ def test_model(manager, input):
         done_json = 0
         open_braces = 1
         closed_braces = 0
-        
+
+        print(json_start, end="", flush=True)
         while True:
             logits = model.get_logits_from_input_ids(input_ids)
             next_token_id = int(np.argmax(logits))
-            
+        
             current_text = model.decode([next_token_id])
             
             if not done_json:
                 input_ids.append(next_token_id)
                 text += current_text
+                print(current_text, end="", flush=True)
                 open_braces += current_text.count("{")
                 closed_braces += current_text.count("}")
+
                 if text.count('"') == 8:
-                    inject_parameter_str = ' "parameters": {"'
-                    parameter_tensor = model.encode(inject_parameter_str)
-                    parameter_ids = parameter_tensor[0].tolist()
-                    
+                    print(inject_parameter_str, end="")
                     input_ids.extend(parameter_ids)
                     text += inject_parameter_str
                     open_braces += 1
             
                 if open_braces == closed_braces:
                     done_json = 1
+
             else:
               text = text.strip()
               if 'parameters' in text:
@@ -78,7 +84,7 @@ def test_model(manager, input):
               else:
                   print("Invalid Input!")
                   break
-            print(text)
+            # print(text)
         
         print("#################################################")
 
