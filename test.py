@@ -50,9 +50,11 @@ def test_model(manager, input):
         tensor_ids = model.encode(prompt)
         input_ids = tensor_ids[0].tolist()
         text = json_start
+
         done_json = 0
         open_braces = 1
         closed_braces = 0
+        func_name = ""
 
         print(json_start, end="", flush=True)
         while True:
@@ -68,8 +70,10 @@ def test_model(manager, input):
                 open_braces += current_text.count("{")
                 closed_braces += current_text.count("}")
 
+                if text.count('"') == 7:
+                  func_name += current_text
+                  
                 if text.count('"') == 8:
-                    print(inject_parameter_str, end="")
                     input_ids.extend(parameter_ids)
                     text += inject_parameter_str
                     open_braces += 1
