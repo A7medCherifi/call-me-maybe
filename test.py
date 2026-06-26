@@ -72,12 +72,12 @@ def test_model(manager, input):
                 if open_braces == closed_braces:
                     done_json = 1
             else:
-                text = text.strip()
-            if 'parameters' in text:
-                break
-            else:
-                print("Invalid Input!")
-                break
+              text = text.strip()
+              if 'parameters' in text:
+                  break
+              else:
+                  print("Invalid Input!")
+                  break
             print(text)
         
         print("#################################################")
