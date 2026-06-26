@@ -31,14 +31,12 @@ def test_model(manager, input):
         prompt = f"""Extract the function name and parameters from the Input Text and return them as a valid JSON object. \
         Functions available: \
             {functions} \
-        
         Example: \
             Input text: What is the sum of 2 and 3? \
             JSON output: {{"prompt": "What is the sum of 2 and 3?", "name": "fn_add_numbers", "parameters": {{"a": 2.0, "b": 3.0}}}}.\
         Rules: \
             1. If a parameter type is a Number, cast it to a float. \
             2. Output ONLY the raw JSON, Do not include conversational filler text. \
-        
         Input Text: {element} \
             JSON output: \
 """

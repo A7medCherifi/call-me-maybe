@@ -24,7 +24,7 @@ def parse_calling_function(file_name: str) -> list:
 		for e in data:
 			try:
 				prompt = CallingFunction(**e)
-				valid.append(prompt)
+				valid.append(e)
 			except ValidationError:
 				print("Invalid prompt!")
 				continue
