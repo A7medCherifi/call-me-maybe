@@ -8,7 +8,7 @@ def process_llm_output(raw_llm, prompt):
         extracted_data = ast.literal_eval(raw_llm)
     except Exception as e:
         print(f"Error parsing model output: {e}")
-    return None
+        return None
     final_dict = {
         "prompt": prompt,
         "name": extracted_data[0],
@@ -40,7 +40,7 @@ def test_model(manager, input):
             Input text: What is the sum of 2 and 3? \
             JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
         Rules: \
-            1. If a parameter type is a Number, cast it to a float. \
+            1. If a parameter type is a Number cast it to a float. \
             2. Output ONLY the raw JSON, Do not include conversational filler text. \
         Input Text: {element} \
             JSON output: \
@@ -56,7 +56,7 @@ def test_model(manager, input):
         closed_braces = 0
         func_name = ""
 
-        print(json_start, end="", flush=True)
+        # print(json_start, end="", flush=True)
         while True:
             logits = model.get_logits_from_input_ids(input_ids)
             next_token_id = int(np.argmax(logits))
@@ -66,7 +66,6 @@ def test_model(manager, input):
             if not done_json:
                 input_ids.append(next_token_id)
                 text += current_text
-                print(current_text, end="", flush=True)
                 open_braces += current_text.count("{")
                 closed_braces += current_text.count("}")
 
@@ -79,16 +78,14 @@ def test_model(manager, input):
                     open_braces += 1
             
                 if open_braces == closed_braces:
-                    done_json = 1
+                    if 'parameters' in text:
+                      text, braces, _ = text.partition('}}')
+                      text += braces
+                      done_json = 1
 
             else:
-              text = text.strip()
-              if 'parameters' in text:
-                  break
-              else:
-                  print("Invalid Input!")
-                  break
-            # print(text)
+              break
+            print(text)
         
         print("#################################################")
 
