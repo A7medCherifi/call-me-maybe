@@ -14,7 +14,7 @@ def main():
 	manager.prompts_calling = prompts_calling
 	# create_template(manager)
 	# print(manager.prompts_calling[0].prompt)
-	test_model(manager, "Reverse the string 'hello'")
+	test_model(manager, "Replace all vowels in 'Programming is fun' with asterisks")
 
 
 if __name__ == "__main__":

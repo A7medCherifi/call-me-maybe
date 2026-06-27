@@ -19,7 +19,7 @@ def process_llm_output(raw_llm, prompt):
 
 def test_model(manager, input):
     model = Small_LLM_Model()
-    results = dict()
+    resource = dict()
     functions = ""
     all_prompts = list()
 
@@ -29,65 +29,124 @@ def test_model(manager, input):
 
     for fn in manager.definition_functions:
         functions += f"Name: {fn['name']} | Parameters: {fn['parameters']}\n"
+        # keys = []
+        # for key in fn['parameters'].keys():
+        #   keys.append(key)
+        resource[fn['name']] = list(fn["parameters"])
+        # print(len(resource[fn['name']]))
+
     for element in manager.prompts_calling:
         all_prompts.append(element['prompt'])
     
-    for element in all_prompts:
-        prompt = f"""Extract the function name and parameters as a valid JSON object. \
-        Functions: \
-            {functions} \
-        Example: \
-            Input text: What is the sum of 2 and 3? \
-            JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
-        Rules: \
-            1. If a parameter type is a Number cast it to a float. \
-            2. Output ONLY the raw JSON, Do not include conversational filler text. \
-        Input Text: {element} \
-            JSON output: \
+    # for element in all_prompts:
+    prompt = f"""Extract the function name and parameters as a valid JSON object. \
+    Functions: \
+        {functions} \
+    Example: \
+        Input text: What is the sum of 2 and 3? \
+        JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
+    Rules: \
+        1. If a parameter type is a Number cast it to a float. \
+        2. Output ONLY the raw JSON. \
+    Input Text: {input} \
+        JSON output: \
 """
-        json_start = "{" + f'"prompt": "{element}", "name": "'
-        prompt += json_start
-        tensor_ids = model.encode(prompt)
-        input_ids = tensor_ids[0].tolist()
-        text = json_start
+    json_start = "{" + f'"prompt": "{input}", "name": "'
+    prompt += json_start
+    tensor_ids = model.encode(prompt)
+    input_ids = tensor_ids[0].tolist()
+    text = json_start
 
-        done_json = 0
-        open_braces = 1
-        closed_braces = 0
-        func_name = ""
+    done_json = 0
+    open_braces = 1
+    closed_braces = 0
+    func_name = ""
+    parameters = ""
 
-        # print(json_start, end="", flush=True)
-        while True:
-            logits = model.get_logits_from_input_ids(input_ids)
-            next_token_id = int(np.argmax(logits))
-        
-            current_text = model.decode([next_token_id])
-            
-            if not done_json:
-                input_ids.append(next_token_id)
-                text += current_text
-                open_braces += current_text.count("{")
-                closed_braces += current_text.count("}")
+    # print(json_start, end="", flush=True)
+    i = 0
+    next_arg = 1
+    while True:
+      logits = model.get_logits_from_input_ids(input_ids)
+      next_token_id = int(np.argmax(logits))
+  
+      current_text = model.decode([next_token_id])
+      
+      if not done_json:
+        open_braces += current_text.count("{")
+        closed_braces += current_text.count("}")
 
-                if text.count('"') == 7:
-                  func_name += current_text
-                  
-                if text.count('"') == 8:
-                    input_ids.extend(parameter_ids)
-                    text += inject_parameter_str
-                    open_braces += 1
-            
-                if open_braces == closed_braces:
-                    if 'parameters' in text:
-                      text, braces, _ = text.partition('}}')
-                      text += braces
-                      done_json = 1
+        injected = False
 
-            else:
-              break
-            print(text)
-        
-        print("#################################################")
+        if text.count('"') == 7:
+          func_name += current_text
+          
+        if text.count('"') == 8:
+          if '"' in func_name:
+            func_name = func_name.split('"')[0]
+          input_ids.extend(parameter_ids)
+          text += inject_parameter_str
+          open_braces += 1
+          injected = True
+          
+        if 'parameters' in text and i < len(resource[func_name]):
+          if next_arg:
+            par_str = f'{resource[func_name][i]}": '
+            par_tensor = model.encode(par_str)
+            par_ids = par_tensor[0].tolist()
+
+            input_ids.extend(par_ids)
+            text += par_str
+            parameters += par_str
+            i += 1
+            next_arg = 0
+            injected = True
+
+          else:
+            parameters += current_text
+          
+          if parameters.count(',') == i:
+            next_arg = 1
+    
+        if not injected:
+          input_ids.append(next_token_id)
+          text += current_text
+  
+        if open_braces == closed_braces:
+            if 'parameters' in text:
+              text, braces, _ = text.rpartition('}}')
+              text += braces
+              done_json = 1
+
+      else:
+        break
+      print(text)
+    
+    print("#################################################")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
