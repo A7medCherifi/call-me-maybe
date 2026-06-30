@@ -4,33 +4,63 @@ import ast
 import time
 from llm_sdk import Small_LLM_Model
 
-def process_llm_output(raw_llm, prompt):
-    try:
-        extracted_data = ast.literal_eval(raw_llm)
-    except Exception as e:
-        print(f"Error parsing model output: {e}")
-        return None
-    final_dict = {
-        "prompt": prompt,
-        "name": extracted_data[0],
-        "parameters": extracted_data[1]
-    }
-    return final_dict
+
+class Model():
+  def __init__(self):
+    self.func_name = ""
+    self.extract_func_name = True
+    self.func_vocab = list()
+    self.model = Small_LLM_Model()
+    self.func_trie = {}
 
 
-def test_model(manager, inputs):
-    model = Small_LLM_Model()
+  # def get_func_name(self, next_token_id):
+  #   if next_token_id not in self.func_vocab:
+      
+    # current_text = self.model.decode([next_token_id])
+    # queue = list()
+    # for func in self.func_name:
+    #   if func.startswith(current_text):
+    #     queue.append(func)
+
+    # if len(queue) == 0:
+    #   # Fix this
+    #   pass
+
+    # if len(queue) == 1:
+    #   self.func_name = queue[0]
+    #   self.extract_func_name = False
+
+    # else:
+    #   if '"' not in current_text:
+    #     self.func_name += current_text
+    #   else:
+    #     self.func_name += current_text.split('"')[0]
+    #     self.extract_func_name = False
+
+
+    # if '"' not in current_text:
+    #   self.func_name += current_text
+    # else:
+    #   self.func_name += current_text.split('"')[0]
+    #   self.extract_func_name = False
+
+
+
+  def test_model(self, manager, inputs):
     resource = dict()
     functions = ""
     all_prompts = list()
+    allowed_funcs = set()
+    
 
     start = time.perf_counter()
     inject_parameter_str = '"parameters": {'
-    parameter_tensor = model.encode(inject_parameter_str)
+    parameter_tensor = self.model.encode(inject_parameter_str)
     parameter_ids = parameter_tensor[0].tolist()
 
     forced_after_comma = ' '
-    after_comma_tensor = model.encode(forced_after_comma)
+    after_comma_tensor = self.model.encode(forced_after_comma)
     after_comma_id = after_comma_tensor[0].tolist()
 
 
@@ -40,6 +70,14 @@ def test_model(manager, inputs):
         # for key in fn['parameters'].keys():
         #   keys.append(key)
         resource[fn['name']] = [(name, value['type']) for name, value in fn['parameters'].items()]
+        allowed_funcs.add(fn['name'])
+        func_ids = self.model.encode(fn['name'])[0].tolist()
+        node = self.func_trie
+        for tid in func_ids:
+            if tid not in node:
+                node[tid] = {}
+            node = node[tid]
+        node["__END__"] = fn['name']
         # print(resource[fn['name']])
 
     for element in manager.prompts_calling:
@@ -60,7 +98,7 @@ def test_model(manager, inputs):
   """
       json_start = "{" + f'"prompt": "{input}", "name": "'
       prompt += json_start
-      tensor_ids = model.encode(prompt)
+      tensor_ids = self.model.encode(prompt)
       input_ids = tensor_ids[0].tolist()
       text = json_start
 
@@ -72,13 +110,42 @@ def test_model(manager, inputs):
 
       i = 0
       next_arg = 1
-      extract_func_name= True
+      trie_node = self.func_trie
       while True:
-        logits = model.get_logits_from_input_ids(input_ids)
+        logits = self.model.get_logits_from_input_ids(input_ids)
         next_token_id = int(np.argmax(logits))
-    
-        current_text = model.decode([next_token_id])
 
+        print(f"Next Token id : {next_token_id}")
+
+        if self.extract_func_name:
+          allowed_ids = [tid for tid in trie_node if tid != "__END__"]
+
+          if next_token_id not in self.func_vocab:
+            print("Wrong!\n")
+            mask = np.full(len(logits), -np.inf)
+
+            for tid in allowed_ids:
+                        mask[tid] = 0.0
+            mask[self.func_vocab]
+            constrained_logits = logits + mask
+            next_token_id = int(np.argmax(constrained_logits))
+            print(f"Next Token id : {next_token_id}")
+
+          current_text = self.model.decode([next_token_id])
+          trie_node = trie_node[next_token_id]
+          func_name += current_text
+
+          if "__END__" in trie_node:
+            self.func_name = trie_node["__END__"]
+            self.extract_func_name = False  # done extracting name
+            trie_node = self.func_trie 
+
+        else:
+          current_text = self.model.decode([next_token_id])
+          
+        print(f"\nToken: {current_text}")
+
+        return
         if current_text.endswith(','):
           current_text += forced_after_comma
           input_ids.extend(after_comma_id)
@@ -88,19 +155,13 @@ def test_model(manager, inputs):
           closed_braces += current_text.count("}")
 
           injected = False
-            
-          if extract_func_name:
-            if '"' not in current_text:
-              func_name += current_text
-            else:
-              func_name += current_text.split('"')[0]
-              extract_func_name = False
-              text += current_text
-            
-              input_ids.extend(parameter_ids)
-              text += inject_parameter_str
-              open_braces += 1
-              injected = True
+
+          if not self.extract_func_name:
+            text += current_text
+            input_ids.extend(parameter_ids)
+            text += inject_parameter_str
+            open_braces += 1
+            injected = True
           
           if 'parameters' in text and i < len(resource[func_name]):
             if next_arg:
@@ -108,7 +169,7 @@ def test_model(manager, inputs):
                 par_str = f'"{resource[func_name][i][0]}": "'
               else:
                 par_str = f'"{resource[func_name][i][0]}": '
-              par_tensor = model.encode(par_str)
+              par_tensor = self.model.encode(par_str)
               par_ids = par_tensor[0].tolist()
 
               input_ids.extend(par_ids)
