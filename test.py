@@ -142,28 +142,3 @@ def test_model(manager, inputs):
 
     elapsed = time.perf_counter() - start
     print(f"Time: {elapsed / 60:.2f}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
