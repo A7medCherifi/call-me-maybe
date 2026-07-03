@@ -1,0 +1,98 @@
+[
+  {
+    "prompt": "What is the product of 3 and 5?",
+    "name": "fn_multiply_numbers",
+    "parameters": {
+      "a": 3.0,
+      "b": 5.0
+    },
+    "expected_output": 15.0
+  },
+  {
+    "prompt": "What is the product of 12 and 4?",
+    "name": "fn_multiply_numbers",
+    "parameters": {
+      "a": 12.0,
+      "b": 4.0
+    },
+    "expected_output": 48.0
+  },
+  {
+    "prompt": "Is 4 an even number?",
+    "name": "fn_is_even",
+    "parameters": {
+      "n": 4
+    },
+    "expected_output": true
+  },
+  {
+    "prompt": "Is 7 an even number?",
+    "name": "fn_is_even",
+    "parameters": {
+      "n": 7
+    },
+    "expected_output": false
+  },
+  {
+    "prompt": "Calculate compound interest on 1234567.89 at 0.0375 rate for 23 years",
+    "name": "fn_calculate_compound_interest",
+    "parameters": {
+      "principal": 1234567.89,
+      "rate": 0.0375,
+      "years": 23
+    },
+    "expected_output": 2878998.2507434245
+  },
+  {
+    "prompt": "Execute SQL query 'SELECT * FROM users' on the production database",
+    "name": "fn_execute_sql_query",
+    "parameters": {
+      "query": "SELECT * FROM users",
+      "database": "production"
+    },
+    "expected_output": "Executing on production: SELECT * FROM users"
+  },
+  {
+    "prompt": "Run the query 'INSERT INTO logs VALUES (1, 2, 3)' on the system database",
+    "name": "fn_execute_sql_query",
+    "parameters": {
+      "query": "INSERT INTO logs VALUES (1, 2, 3)",
+      "database": "system"
+    },
+    "expected_output": "Executing on system: INSERT INTO logs VALUES (1, 2, 3)"
+  },
+  {
+    "prompt": "Read the file at /home/user/data.json with utf-8 encoding",
+    "name": "fn_read_file",
+    "parameters": {
+      "path": "/home/user/data.json",
+      "encoding": "utf-8"
+    },
+    "expected_output": "Reading /home/user/data.json with utf-8"
+  },
+  {
+    "prompt": "Read C:\\Users\\john\\config.ini with latin-1 encoding",
+    "name": "fn_read_file",
+    "parameters": {
+      "path": "C:\\Users\\john\\config.ini",
+      "encoding": "latin-1"
+    },
+    "expected_output": "Reading C:\\Users\\john\\config.ini with latin-1"
+  },
+  {
+    "prompt": "Format template: Hello {user}'s profile!",
+    "name": "fn_format_template",
+    "parameters": {
+      "template": "Hello {user}'s profile!"
+    },
+    "expected_output": "Template: Hello {user}'s profile!"
+  },
+  {
+    "prompt": "Format template: Say \"hello\" to {name}",
+    "name": "fn_format_template",
+    "parameters": {
+      "template": "Say \"hello\" to {name}"
+    },
+    "expected_output": "Template: Say \"hello\" to {name}"
+  }
+]

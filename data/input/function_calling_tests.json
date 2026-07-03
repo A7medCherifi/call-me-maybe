@@ -1,35 +1,35 @@
 [
   {
-    "prompt": "What is the sum of 2 and 3?"
+    "prompt": "What is the product of 3 and 5?"
   },
   {
-    "prompt": "What is the sum of 265 and 345?"
+    "prompt": "What is the product of 12 and 4?"
   },
   {
-    "prompt": "Greet shrek"
+    "prompt": "Is 4 an even number?"
   },
   {
-    "prompt": "Greet john"
+    "prompt": "Is 7 an even number?"
   },
   {
-    "prompt": "Reverse the string 'hello'"
+    "prompt": "Calculate compound interest on 1234567.89 at 0.0375 rate for 23 years"
   },
   {
-    "prompt": "Reverse the string 'world'"
+    "prompt": "Execute SQL query 'SELECT * FROM users' on the production database"
   },
   {
-    "prompt": "What is the square root of 16?"
+    "prompt": "Run the query 'INSERT INTO logs VALUES (1, 2, 3)' on the system database"
   },
   {
-    "prompt": "Calculate the square root of 144"
+    "prompt": "Read the file at /home/user/data.json with utf-8 encoding"
   },
   {
-    "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"
+    "prompt": "Read C:\\Users\\john\\config.ini with latin-1 encoding"
   },
   {
-    "prompt": "Replace all vowels in 'Programming is fun' with asterisks"
+    "prompt": "Format template: Hello {user}'s profile!"
   },
   {
-    "prompt": "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'"
+    "prompt": "Format template: Say \"hello\" to {name}"
   }
 ]
