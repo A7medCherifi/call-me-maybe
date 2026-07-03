@@ -1,6 +1,6 @@
 [
   {
-    "name": "fn_multiply_numbers",
+    "name": "fn_multiply_numbers_hdida_jdida",
     "description": "Multiply two numbers together and return their product.",
     "parameters": {
       "a": {

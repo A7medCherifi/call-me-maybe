@@ -97,7 +97,7 @@ class Model():
         for element in self.manager.prompts_calling:
             self.all_prompts.append(element['prompt'])
 
-    def _mask_unwanted_tokens(self, logits, found_name, valid_vocab):
+    def _mask_unwanted_func_tokens(self, logits, found_name, valid_vocab):
         funcs_to_remove = []
         matched = False
         while True:
@@ -114,6 +114,7 @@ class Model():
                     found_name = True
                     for func in valid_vocab:
                         next_token_id = valid_vocab[func]
+                        print(f"\nFound it: {next_token_id}, Vocab: {valid_vocab}\n")
                         del valid_vocab[func]
                         break
                     break
@@ -121,9 +122,11 @@ class Model():
                     del valid_vocab[func]
                 for func in valid_vocab:
                     valid_vocab[func].pop(0)
+                print(f"\n{valid_vocab}")
                 break
             else:
                 logits[next_token_id] = -float('inf')
+                funcs_to_remove = []
         return (next_token_id, found_name, valid_vocab)
 
     """
@@ -137,92 +140,93 @@ class Model():
 
     def run_model(self, input_str):
         self._extract_data_from_input()
+        print("dddd")
         start = time.time()
         self._encode_constant_prompt()
         after_comma_id = self.model.encode(' ')[0].tolist()
 
         # ===== Stage of Prompt ===== 
-        for input in self.manager.prompts_calling:
-            self.input_str = input
-            self._stage_of_prompt()
+        # for input in self.manager.prompts_calling:
+        self.input_str = input_str
+        self._stage_of_prompt()
 
-            i = 0
-            next_arg = 1
-            done_json = 0
-            open_braces = 1
-            closed_braces = 0
+        i = 0
+        next_arg = 1
+        done_json = 0
+        open_braces = 1
+        closed_braces = 0
 
-            self.func_name = ""
-            self.parameters = ""
+        self.func_name = ""
+        self.parameters = ""
 
-            self.extract_func_name = True
-            self.inject_par = False
-            self.injected = False
-    
-            found_name = False
-            valid_vocab = copy.deepcopy(self.vocab)
+        self.extract_func_name = True
+        self.inject_par = False
+        self.injected = False
 
-            while True:
-                logits = self.model.get_logits_from_input_ids(self.input_ids)
+        found_name = False
+        valid_vocab = copy.deepcopy(self.vocab)
 
-                next_token_id, found_name, valid_vocab = self._mask_unwanted_tokens(
-                    logits,
-                    found_name,
-                    valid_vocab
-                    )
+        while True:
+            logits = self.model.get_logits_from_input_ids(self.input_ids)
+
+            next_token_id, found_name, valid_vocab = self._mask_unwanted_func_tokens(
+                logits,
+                found_name,
+                valid_vocab
+                )
 
 
-                if found_name:
-                    self.current_token = self.model.decode(next_token_id)
-                else:
-                    self.current_token = self.model.decode([next_token_id])
+            if found_name:
+                self.current_token = self.model.decode(next_token_id)
+            else:
+                self.current_token = self.model.decode([next_token_id])
 
-                if self.current_token.endswith(','):
-                    self.current_token += ' '
-                    self.input_ids.extend(after_comma_id)
+            if self.current_token.endswith(','):
+                self.current_token += ' '
+                self.input_ids.extend(after_comma_id)
 
-                if not done_json:
-                    open_braces += self.current_token.count("{")
-                    closed_braces += self.current_token.count("}")
+            if not done_json:
+                open_braces += self.current_token.count("{")
+                closed_braces += self.current_token.count("}")
 
-                    self.injected = False
+                self.injected = False
 
-                    # ===== Stage of Name ===== 
-                    self._stage_of_name()
-                    
-                    # ===== Stage of Parameters ===== 
-                    if not self.extract_func_name and i < len(self.resources[self.func_name]):
-                        if next_arg:
-                            if not self.inject_par:
-                                open_braces += 1
-                            self._stage_of_parameter(i)
-                            i += 1
-                            next_arg = 0
-                        else:
-                            self.parameters += self.current_token
+                # ===== Stage of Name ===== 
+                self._stage_of_name()
+                
+                # ===== Stage of Parameters ===== 
+                if not self.extract_func_name and i < len(self.resources[self.func_name]):
+                    if next_arg:
+                        if not self.inject_par:
+                            open_braces += 1
+                        self._stage_of_parameter(i)
+                        i += 1
+                        next_arg = 0
+                    else:
+                        self.parameters += self.current_token
 
-                        if self.parameters.count(',') == i:
-                            next_arg = 1
+                    if self.parameters.count(',') == i:
+                        next_arg = 1
 
-                    if not self.injected:
-                        if found_name:
-                            self.input_ids.extend(next_token_id)
-                            found_name = False
-                        else:
-                            self.input_ids.append(next_token_id)
-                        self.output_text += self.current_token
+                if not self.injected:
+                    if found_name:
+                        self.input_ids.extend(next_token_id)
+                        found_name = False
+                    else:
+                        self.input_ids.append(next_token_id)
+                    self.output_text += self.current_token
 
-                    if open_braces == closed_braces:
-                        if self.inject_par:
-                            self.output_text, braces, _ = self.output_text.rpartition('}}')
-                            self.output_text += braces
-                            done_json = 1
-                else:
-                    break
+                if open_braces == closed_braces:
+                    if self.inject_par:
+                        self.output_text, braces, _ = self.output_text.rpartition('}}')
+                        self.output_text += braces
+                        done_json = 1
+            else:
+                break
 
-                print(self.output_text)
+            print(self.output_text)
 
-            print("\n#################################################\n")
+        print("\n#################################################\n")
             
         end = time.time()
         print(f"Time: {(end - start) / 60:.2f}")

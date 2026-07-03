@@ -15,7 +15,7 @@ def main():
     # create_template(manager)
     # print(manager.prompts_calling[0].prompt)
     model = Model(manager)
-    model.run_model("Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS")
+    model.run_model("")
 
 
 if __name__ == "__main__":
