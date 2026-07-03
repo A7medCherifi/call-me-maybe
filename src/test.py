@@ -97,7 +97,14 @@ class Model():
         for element in self.manager.prompts_calling:
             self.all_prompts.append(element['prompt'])
 
-    def _mask_unwanted_func_tokens(self, logits, found_name, valid_vocab):
+    # def _mask_unwanted_tokens(self, logits, found_name, valid_vocab, stage):
+    #     if stage == 1:
+    #         return self._handle_func_name(logits, found_name, valid_vocab)
+            
+    #     elif stage == 2:
+    #         return self._handle_parameters(logits, found_name, valid_vocab)
+
+    def _handle_func_name(self, logits, found_name, valid_vocab):
         funcs_to_remove = []
         matched = False
         while True:
@@ -122,25 +129,25 @@ class Model():
                     del valid_vocab[func]
                 for func in valid_vocab:
                     valid_vocab[func].pop(0)
-                print(f"\n{valid_vocab}")
                 break
             else:
                 logits[next_token_id] = -float('inf')
                 funcs_to_remove = []
         return (next_token_id, found_name, valid_vocab)
 
-    """
-    Add constrained decoding for the parameters, by implementing those:
-        1. Check the type of parameter if its string it must start with '"' and ends with it.
-        2. Check the type of parameter if its integer it must handle integers only and mask other tokens.
-        3. Check the type of parameter if its Number it must be a float ends with .\+ (0-9).
-        4. Check for extra quots or spaces.
-        5. if '{' or '}' in the value of parameter you should now count it as a real braces of the json, it must be a char only.
-    """
+    def _handle_parameters(self, logits, found_name, valid_vocab):
+        """
+        Add constrained decoding for the parameters, by implementing those:
+            1. Check the type of parameter if its string it must start with '"' and ends with it.
+            2. Check the type of parameter if its integer it must handle integers only and mask other tokens.
+            3. Check the type of parameter if its Number it must be a float ends with .\+ (0-9).
+            4. Check for extra quots or spaces.
+            5. if '{' or '}' in the value of parameter you should now count it as a real braces of the json, it must be a char only.
+        """
+        pass
 
     def run_model(self, input_str):
         self._extract_data_from_input()
-        print("dddd")
         start = time.time()
         self._encode_constant_prompt()
         after_comma_id = self.model.encode(' ')[0].tolist()
@@ -165,15 +172,23 @@ class Model():
 
         found_name = False
         valid_vocab = copy.deepcopy(self.vocab)
+        stage = 1
 
         while True:
             logits = self.model.get_logits_from_input_ids(self.input_ids)
 
-            next_token_id, found_name, valid_vocab = self._mask_unwanted_func_tokens(
+            # if stage == 1:
+            next_token_id, found_name, valid_vocab = self._handle_func_name(
                 logits,
                 found_name,
                 valid_vocab
-                )
+            )
+            # else:
+            #     next_token_id, found_name, valid_vocab = self._handle_parameters(
+            #         logits,
+            #         found_name,
+            #         valid_vocab
+            #     )
 
 
             if found_name:
@@ -196,14 +211,13 @@ class Model():
                 
                 # ===== Stage of Parameters ===== 
                 if not self.extract_func_name and i < len(self.resources[self.func_name]):
+                    stage = 2
                     if next_arg:
                         if not self.inject_par:
                             open_braces += 1
                         self._stage_of_parameter(i)
                         i += 1
                         next_arg = 0
-                    else:
-                        self.parameters += self.current_token
 
                     if self.parameters.count(',') == i:
                         next_arg = 1
@@ -215,6 +229,10 @@ class Model():
                     else:
                         self.input_ids.append(next_token_id)
                     self.output_text += self.current_token
+                    if self.inject_par:
+                        if '}' in self.current_token:
+                            self.current_token, _, _ = self.current_token.partition('}')
+                        self.parameters += self.current_token
 
                 if open_braces == closed_braces:
                     if self.inject_par:
@@ -225,6 +243,7 @@ class Model():
                 break
 
             print(self.output_text)
+            print(f"Parameters: {self.parameters}\n")
 
         print("\n#################################################\n")
             
