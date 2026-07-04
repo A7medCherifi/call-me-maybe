@@ -15,7 +15,7 @@ def main():
     # create_template(manager)
     # print(manager.prompts_calling[0].prompt)
     model = Model(manager)
-    model.run_model("")
+    model.run_model("What is the product of 3.00 and 5.43?")
 
 
 if __name__ == "__main__":

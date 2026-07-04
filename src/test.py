@@ -14,6 +14,7 @@ class Model():
         self.output_text = ""
         self.input_str = ""
         self.prompt = ""
+        self.par_type = ""
         self.func_name = ""
         self.parameters = ""
         self.current_token = ""
@@ -28,16 +29,19 @@ class Model():
         self.injected = False
 
     def __get_valid_parameters(self, par_type):
-        valid_vocab = dict()
+        valid_vocab = list()
         if par_type == 'string':
             pass
         else:
-            vocab = ['.', '-', '+']
-            for i in range(10):
-                vocab.append(str(i))
+            vocab = ['+', '-', ',', ' ', '}}'] + [str(i) for i in range(10)]
+            if par_type == 'number':
+                vocab.append('.')
             for element in vocab:
                 element_id = self.model.encode(element)[0].tolist()
-                valid_vocab[element] = element_id
+                if isinstance(element_id, list):
+                    valid_vocab.extend(element_id)
+                else:
+                    valid_vocab.append(element_id)
         return valid_vocab
 
     def _encode_constant_prompt(self):
@@ -50,9 +54,9 @@ class Model():
                 JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
             Rules: \
                 1. If a parameter type is a Number cast it to a float. \
-                2. If a parameter type is an Integer keep it as a valid integer not float.
+                2. If a parameter type is an Integer keep it as a valid integer not float. \
                 2. Output ONLY the raw JSON. \
-            Input Text: 
+            Input Text: \
         """
         self.const_prompt_ids = self.model.encode(const_prompt)[0].tolist()
 
@@ -89,7 +93,8 @@ class Model():
             self.inject_par = True
 
         if self.inject_par:
-            if self.resources[self.func_name][i][1] == 'string':
+            self.par_type = self.resources[self.func_name][i][1]
+            if self.par_type == 'string':
                 par_str = f'"{self.resources[self.func_name][i][0]}": "'
             else:
                 par_str = f'"{self.resources[self.func_name][i][0]}": '
@@ -134,7 +139,6 @@ class Model():
                     found_name = True
                     for func in valid_vocab:
                         next_token_id = valid_vocab[func]
-                        print(f"\nFound it: {next_token_id}, Vocab: {valid_vocab}\n")
                         del valid_vocab[func]
                         break
                     break
@@ -148,7 +152,7 @@ class Model():
                 funcs_to_remove = []
         return (next_token_id, found_name, valid_vocab)
 
-    def _handle_parameters(self, logits, par_type, valid_vocab):
+    def _handle_parameters(self, logits, par_type, valid_vocab, value_str):
         """
         Add constrained decoding for the parameters, by implementing those:
             1. Check the type of parameter if its string it must start with '"' and ends with it.
@@ -157,12 +161,18 @@ class Model():
             4. Check for extra quots or spaces.
             5. if '{' or '}' in the value of parameter you should now count it as a real braces of the json, it must be a char only.
         """
-        if par_type in ['number', 'integer']:
+        if not valid_vocab:
             valid_vocab = self.__get_valid_parameters(par_type)
-            mask = np.full_like(logits, )
+        if par_type in ['number', 'integer']:
+            logits = np.array(logits)
+            mask = np.full_like(logits, -float('inf'))
+            mask[valid_vocab] = logits[valid_vocab]
+            next_token_id = int(np.argmax(mask))
+            return (next_token_id, valid_vocab, value_str)
             
         elif par_type == 'string':
-            pass
+            next_token_id = int(np.argmax(logits))
+        return (next_token_id, valid_vocab, value_str)
         
 
     def run_model(self, input_str):
@@ -184,6 +194,8 @@ class Model():
 
         self.func_name = ""
         self.parameters = ""
+        self.par_type = ""
+        value_str = ""
 
         self.extract_func_name = True
         self.inject_par = False
@@ -195,7 +207,6 @@ class Model():
 
         while True:
             logits = self.model.get_logits_from_input_ids(self.input_ids)
-            print(logits)
 
             if stage == 1:
                 next_token_id, found_name, valid_vocab = self._handle_func_name(
@@ -204,10 +215,11 @@ class Model():
                     valid_vocab
                 )
             else:
-                next_token_id, found_name, valid_vocab = self._handle_parameters(
+                next_token_id, valid_vocab, value_str = self._handle_parameters(
                     logits,
-                    found_name,
-                    valid_vocab
+                    self.par_type,
+                    valid_vocab,
+                    value_str
                 )
 
 
@@ -253,6 +265,7 @@ class Model():
                         if '}' in self.current_token:
                             self.current_token, _, _ = self.current_token.partition('}')
                         self.parameters += self.current_token
+                        value_str += self.current_token
 
                 if open_braces == closed_braces:
                     if self.inject_par:
@@ -261,9 +274,8 @@ class Model():
                         done_json = 1
             else:
                 break
-
             print(self.output_text)
-            print(f"Parameters: {self.parameters}\n")
+            print(f"Par values: [{value_str}]\n")
 
         print("\n#################################################\n")
             

@@ -1,7 +1,9 @@
-
-vocab = ['.', '-', '+']
+test = [1, 2, 3]
+aa = ['.', '-', '+', 'p', '0']
+vocab = list()
 for i in range(10):
-    vocab.append(str(i))
-for a in vocab:
-    print(f"A: {a}")
+    vocab.extend(str(i))
 
+print(vocab[test])
+
+# print(vocab)
