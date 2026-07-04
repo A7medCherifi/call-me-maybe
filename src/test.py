@@ -27,6 +27,19 @@ class Model():
         self.inject_par = False
         self.injected = False
 
+    def __get_valid_parameters(self, par_type):
+        valid_vocab = dict()
+        if par_type == 'string':
+            pass
+        else:
+            vocab = ['.', '-', '+']
+            for i in range(10):
+                vocab.append(str(i))
+            for element in vocab:
+                element_id = self.model.encode(element)[0].tolist()
+                valid_vocab[element] = element_id
+        return valid_vocab
+
     def _encode_constant_prompt(self):
         const_prompt = f"""
             Functions Data: \
@@ -135,7 +148,7 @@ class Model():
                 funcs_to_remove = []
         return (next_token_id, found_name, valid_vocab)
 
-    def _handle_parameters(self, logits, found_name, valid_vocab):
+    def _handle_parameters(self, logits, par_type, valid_vocab):
         """
         Add constrained decoding for the parameters, by implementing those:
             1. Check the type of parameter if its string it must start with '"' and ends with it.
@@ -144,7 +157,13 @@ class Model():
             4. Check for extra quots or spaces.
             5. if '{' or '}' in the value of parameter you should now count it as a real braces of the json, it must be a char only.
         """
-        pass
+        if par_type in ['number', 'integer']:
+            valid_vocab = self.__get_valid_parameters(par_type)
+            mask = np.full_like(logits, )
+            
+        elif par_type == 'string':
+            pass
+        
 
     def run_model(self, input_str):
         self._extract_data_from_input()
@@ -176,19 +195,20 @@ class Model():
 
         while True:
             logits = self.model.get_logits_from_input_ids(self.input_ids)
+            print(logits)
 
-            # if stage == 1:
-            next_token_id, found_name, valid_vocab = self._handle_func_name(
-                logits,
-                found_name,
-                valid_vocab
-            )
-            # else:
-            #     next_token_id, found_name, valid_vocab = self._handle_parameters(
-            #         logits,
-            #         found_name,
-            #         valid_vocab
-            #     )
+            if stage == 1:
+                next_token_id, found_name, valid_vocab = self._handle_func_name(
+                    logits,
+                    found_name,
+                    valid_vocab
+                )
+            else:
+                next_token_id, found_name, valid_vocab = self._handle_parameters(
+                    logits,
+                    found_name,
+                    valid_vocab
+                )
 
 
             if found_name:
