@@ -23,12 +23,14 @@ class Model():
         self.vocab = dict()
 
         self.input_ids = None
+        self.comma = None
         self.const_prompt_ids = None
         self.extract_func_name = True
         self.inject_par = False
         self.injected = False
 
     def __get_valid_parameters(self, par_type):
+        self.comma_id = self.model.encode(',')[0].tolist()
         valid_vocab = list()
         if par_type == 'string':
             pass
@@ -167,7 +169,12 @@ class Model():
             logits = np.array(logits)
             mask = np.full_like(logits, -float('inf'))
             mask[valid_vocab] = logits[valid_vocab]
-            next_token_id = int(np.argmax(mask))
+
+            if len(value_str) >= len(self.input_str):
+                next_token_id = self.comma_id
+            else:
+                next_token_id = int(np.argmax(mask))
+            
             return (next_token_id, valid_vocab, value_str)
             
         elif par_type == 'string':
