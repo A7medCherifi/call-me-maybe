@@ -292,7 +292,23 @@ class Model():
 
 
 
+"""
 
+    Fixed the token injection that you do, it miss it out if you give ',' in the prompt, 
+
+    Fixed double '""' and find a way to make sure that he will stop and return a valid json
+
+    3awed 9ad constrained decoding l digits cause ma3jbnich hadik ghir mslka makhdamach mzn
+
+
+
+    moraha handli l input dyal user ou kifach ghadi it3amel m3ah make some code rules
+
+    bach maygeneration chi tkhwira li tkhower lik hadchi
+
+    thats it.
+
+"""
 
 
 
