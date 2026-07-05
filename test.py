@@ -38,7 +38,7 @@ class Model():
             Rules: \
                 1. If a parameter type is a Number cast it to a float. \
                 2. Output ONLY the raw JSON. \
-            Input Text: 
+            Input Text: \
         """
         self.const_prompt_ids = self.model.encode(const_prompt)[0].tolist()
 
@@ -88,7 +88,7 @@ class Model():
 
     def _extract_data_from_input(self):
         for fn in self.manager.definition_functions:
-            self.functions_data += f"Name: {fn['name']} | Parameters: {fn['parameters']}\n"
+            self.functions_data += f"Name: {fn['name']} | Parameters: {fn['parameters']}\n | Description of function what it does: {fn['description']}"
             self.resources[fn['name']] = [(name, value['type']) for name, value in fn['parameters'].items()]
             func_ids = self.model.encode(fn['name'])[0].tolist()
             self.vocab[fn['name']] = func_ids
@@ -123,6 +123,7 @@ class Model():
                 break
             else:
                 logits[next_token_id] = -float('inf')
+                funcs_to_remove = []
         return (next_token_id, found_name, valid_vocab)
 
     def run_model(self, input_str):
@@ -132,8 +133,8 @@ class Model():
         after_comma_id = self.model.encode(' ')[0].tolist()
 
         # ===== Stage of Prompt ===== 
-        for input in self.manager.prompts_calling:
-            self.input_str = input
+        for inputs in self.manager.prompts_calling:
+            self.input_str = next(iter(inputs.values()))
             self._stage_of_prompt()
 
             i = 0
