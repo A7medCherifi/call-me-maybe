@@ -76,37 +76,47 @@ class Model():
         self.input_ids += tensor_ids[0].tolist()
 
 
-    def _stage_of_name(self):
-        if self.extract_func_name:
-            if '"' not in self.current_token:
-                self.func_name += self.current_token
-            else:
-                self.func_name += self.current_token.split('"')[0]
-                self.output_text += self.current_token
-                self.extract_func_name = False
+    def _stage_of_name(self, found_name, next_token_id, stage):
+        if found_name:
+            self.current_token = self.model.decode(next_token_id)
+            self.func_name += self.current_token.split('"')[0].strip()
+            spliter_id = self.model.encode('", ')[0].tolist()
+            self.input_ids.extend(next_token_id)
+            self.input_ids.extend(spliter_id)
+            self.output_text += self.current_token + '", '
+            stage = 2
+        else:
+            self.current_token = self.model.decode([next_token_id])
+            self.func_name += self.current_token
+            self.input_ids.append(next_token_id)
+            self.output_text += self.current_token
+        return stage
 
-    def _stage_of_parameter(self, i):
-        if not self.inject_par:
-            inject_parameter_str = '"parameters": {'
-            parameter_tensor = self.model.encode(inject_parameter_str)
-            parameter_ids = parameter_tensor[0].tolist()
-            self.input_ids.extend(parameter_ids)
-            self.output_text += inject_parameter_str
-            self.injected = True
-            self.inject_par = True
+    def _stage_of_inject_parameter(self, stage):
+        inject_parameter_str = '"parameters": {'
+        parameter_ids = self.model.encode(inject_parameter_str)[0].tolist()
+        self.input_ids.extend(parameter_ids)
+        self.output_text += inject_parameter_str
+        stage = 3
+        return stage
 
-        if self.inject_par:
-            self.par_type = self.resources[self.func_name][i][1]
-            if self.par_type == 'string':
+    def _stage_of_inject_key(self, i, stage):
+        if i < len(self.resources[self.func_name]):
+            par_type = self.resources[self.func_name][i][1]
+            if par_type == 'string':
                 par_str = f'"{self.resources[self.func_name][i][0]}": "'
             else:
                 par_str = f'"{self.resources[self.func_name][i][0]}": '
-            par_tensor = self.model.encode(par_str)
-            par_ids = par_tensor[0].tolist()
+            par_ids = self.model.encode(par_str)[0].tolist()
             self.input_ids.extend(par_ids)
             self.output_text += par_str
-            self.injected = True
             self.parameters += par_str
+            stage = 4
+            return stage
+        else:
+            self.output_text += '}}'
+            stage = 5
+            return stage
 
     def _extract_data_from_input(self):
         for fn in self.manager.definition_functions:
@@ -148,43 +158,22 @@ class Model():
                 funcs_to_remove = []
         return (next_token_id, found_name, valid_vocab)
 
-    def _handle_parameters(self, logits, par_type, valid_vocab, value_str):
-
-        if not self.isvalue:
-            next_token_id = int(np.argmax(logits))
-            return (next_token_id, valid_vocab, value_str)
-        
-        if ',' in value_str:
-            self.isvalue = False
-            value_str = ""
-            next_token_id = int(np.argmax(logits))
-            return (next_token_id, valid_vocab, value_str)
-
-        if not valid_vocab:
-            valid_vocab = self.__get_valid_parameters(par_type)
-
+    def _handle_parameters(self, logits, par_type):        
         if par_type in ['number', 'integer']:
+            valid_vocab = self.__get_valid_parameters(par_type)
             logits = np.array(logits)
             mask = np.full_like(logits, -float('inf'))
             mask[valid_vocab] = logits[valid_vocab]
-
-            # if len(value_str) >= len(self.input_str):
-            #     next_token_id = self.comma_id
-            # else:
-            next_token_id = int(np.argmax(mask))
-            
-            return (next_token_id, valid_vocab, value_str)
-            
-        elif par_type == 'string':
-            next_token_id = int(np.argmax(logits))
-        return (next_token_id, valid_vocab, value_str)
+            return int(np.argmax(mask))
+        else:
+            return int(np.argmax(logits))
         
 
     def run_model(self, input_str):
         self._extract_data_from_input()
         start = time.time()
         self._encode_constant_prompt()
-        after_comma_id = self.model.encode(' ')[0].tolist()
+        # after_comma_id = self.model.encode(' ')[0].tolist()
 
         # ===== Stage of Prompt ===== 
         for inputs in self.manager.prompts_calling:
@@ -211,81 +200,50 @@ class Model():
             valid_vocab = copy.deepcopy(self.vocab)
             stage = 1
 
-            while True:
+            while stage != 5:
                 logits = self.model.get_logits_from_input_ids(self.input_ids)
 
                 if stage == 1:
-                    next_token_id, found_name, valid_vocab = self._handle_func_name(
-                        logits,
-                        found_name,
-                        valid_vocab
-                    )
-                else:
-                    next_token_id, valid_vocab, value_str = self._handle_parameters(
-                        logits,
-                        self.par_type,
-                        valid_vocab,
-                        value_str
-                    )
+                    next_token_id, found_name, valid_vocab = self._handle_func_name(logits, found_name, valid_vocab)
+                    stage = self._stage_of_name(found_name, next_token_id, stage)
 
+                elif stage == 2:
+                    stage = self._stage_of_inject_parameter(stage)
 
-                if found_name:
-                    self.current_token = self.model.decode(next_token_id)
-                else:
+                elif stage == 3:
+                    stage = self._stage_of_inject_key(i, stage)
+
+                elif stage == 4:
+                    par_type = self.resources[self.func_name][i][1]
+                    next_token_id = self._handle_parameters(logits, par_type)
                     self.current_token = self.model.decode([next_token_id])
 
-                if self.current_token.endswith(','):
-                    self.current_token += ' '
-                    self.input_ids.extend(after_comma_id)
-
-                if not done_json:
-                    open_braces += self.current_token.count("{")
-                    closed_braces += self.current_token.count("}")
-
-                    self.injected = False
-
-                    # ===== Stage of Name ===== 
-                    self._stage_of_name()
-                    
-                    # ===== Stage of Parameters ===== 
-                    if not self.extract_func_name and i < len(self.resources[self.func_name]):
-                        stage = 2
-                        if not self.isvalue:
-                            if not self.inject_par:
-                                open_braces += 1
-                            self._stage_of_parameter(i)
-                            i += 1
-                            self.isvalue = True
-                            self.par_count += 1
-
-                    if not self.injected:
-                        if found_name:
-                            self.input_ids.extend(next_token_id)
-                            found_name = False
+                    if ',' in self.current_token or '}' in self.current_token:
+                        i += 1
+                        if i < len(self.resources[self.func_name]):
+                            sep_str = ""
+                            if par_type == 'string':
+                                sep_str = '", '
+                            else:
+                                sep_str = ', '
+                            sep_id = self.model.encode(sep_str)[0].tolist()
+                            self.input_ids.extend(sep_id)
+                            self.output_text += sep_str
+                            stage = 3
                         else:
-                            self.input_ids.append(next_token_id)
+                            end_str = ""
+                            if par_type == 'string':
+                                end_str = '"}}'
+                            else:
+                                end_str = '}}'
+                            sep_id = self.model.encode(end_str)[0].tolist()
+                            self.input_ids.extend(sep_id)
+                            self.output_text += end_str
+                            stage = 5
+                    else:
+                        self.input_ids.append(next_token_id)
                         self.output_text += self.current_token
-                        if self.inject_par:
-                            if '}' in self.current_token:
-                                self.current_token, _, _ = self.current_token.partition('}')
-                            self.parameters += self.current_token
-                            value_str += self.current_token
 
-                    if open_braces == closed_braces:
-                        if self.inject_par:
-                            self.output_text, braces, _ = self.output_text.rpartition('}}')
-                            self.output_text += braces
-                            done_json = 1
-
-                    if self.inject_par and self.isvalue and self.par_count == len(self.resources[self.func_name]):
-                        if len(value_str) >= len(input_str):
-                            self.output_text += "}}"
-                            done_json = 1
-                            print(self.output_text)
-                            break
-
-                else:
-                    break
                 print(self.output_text)
 
             print("\n#################################################\n")
