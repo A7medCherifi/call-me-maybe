@@ -23,19 +23,20 @@ class Model():
         self.vocab = dict()
 
         self.input_ids = None
-        self.comma = None
         self.const_prompt_ids = None
         self.extract_func_name = True
         self.inject_par = False
         self.injected = False
 
+        self.isvalue = False
+        self.par_count = 0
+
     def __get_valid_parameters(self, par_type):
-        self.comma_id = self.model.encode(',')[0].tolist()
         valid_vocab = list()
         if par_type == 'string':
             pass
         else:
-            vocab = ['+', '-', ',', ' ', '}}'] + [str(i) for i in range(10)]
+            vocab = ['+', '-', ',', '}}'] + [str(i) for i in range(10)]
             if par_type == 'number':
                 vocab.append('.')
             for element in vocab:
@@ -117,13 +118,6 @@ class Model():
         for element in self.manager.prompts_calling:
             self.all_prompts.append(element['prompt'])
 
-    # def _mask_unwanted_tokens(self, logits, found_name, valid_vocab, stage):
-    #     if stage == 1:
-    #         return self._handle_func_name(logits, found_name, valid_vocab)
-            
-    #     elif stage == 2:
-    #         return self._handle_parameters(logits, found_name, valid_vocab)
-
     def _handle_func_name(self, logits, found_name, valid_vocab):
         funcs_to_remove = []
         matched = False
@@ -155,25 +149,29 @@ class Model():
         return (next_token_id, found_name, valid_vocab)
 
     def _handle_parameters(self, logits, par_type, valid_vocab, value_str):
-        """
-        Add constrained decoding for the parameters, by implementing those:
-            1. Check the type of parameter if its string it must start with '"' and ends with it.
-            2. Check the type of parameter if its integer it must handle integers only and mask other tokens.
-            3. Check the type of parameter if its Number it must be a float ends with .\+ (0-9).
-            4. Check for extra quots or spaces.
-            5. if '{' or '}' in the value of parameter you should now count it as a real braces of the json, it must be a char only.
-        """
+
+        if not self.isvalue:
+            next_token_id = int(np.argmax(logits))
+            return (next_token_id, valid_vocab, value_str)
+        
+        if ',' in value_str:
+            self.isvalue = False
+            value_str = ""
+            next_token_id = int(np.argmax(logits))
+            return (next_token_id, valid_vocab, value_str)
+
         if not valid_vocab:
             valid_vocab = self.__get_valid_parameters(par_type)
+
         if par_type in ['number', 'integer']:
             logits = np.array(logits)
             mask = np.full_like(logits, -float('inf'))
             mask[valid_vocab] = logits[valid_vocab]
 
-            if len(value_str) >= len(self.input_str):
-                next_token_id = self.comma_id
-            else:
-                next_token_id = int(np.argmax(mask))
+            # if len(value_str) >= len(self.input_str):
+            #     next_token_id = self.comma_id
+            # else:
+            next_token_id = int(np.argmax(mask))
             
             return (next_token_id, valid_vocab, value_str)
             
@@ -189,102 +187,108 @@ class Model():
         after_comma_id = self.model.encode(' ')[0].tolist()
 
         # ===== Stage of Prompt ===== 
-        # for input in self.manager.prompts_calling:
-        self.input_str = input_str
-        self._stage_of_prompt()
+        for inputs in self.manager.prompts_calling:
+            input_str = next(iter(inputs.values()))
+            self.input_str = input_str
+            self._stage_of_prompt()
 
-        i = 0
-        next_arg = 1
-        done_json = 0
-        open_braces = 1
-        closed_braces = 0
+            i = 0
+            next_arg = 1
+            done_json = 0
+            open_braces = 1
+            closed_braces = 0
 
-        self.func_name = ""
-        self.parameters = ""
-        self.par_type = ""
-        value_str = ""
+            self.func_name = ""
+            self.parameters = ""
+            self.par_type = ""
+            value_str = ""
 
-        self.extract_func_name = True
-        self.inject_par = False
-        self.injected = False
+            self.extract_func_name = True
+            self.inject_par = False
+            self.injected = False
 
-        found_name = False
-        valid_vocab = copy.deepcopy(self.vocab)
-        stage = 1
+            found_name = False
+            valid_vocab = copy.deepcopy(self.vocab)
+            stage = 1
 
-        while True:
-            logits = self.model.get_logits_from_input_ids(self.input_ids)
+            while True:
+                logits = self.model.get_logits_from_input_ids(self.input_ids)
 
-            if stage == 1:
-                next_token_id, found_name, valid_vocab = self._handle_func_name(
-                    logits,
-                    found_name,
-                    valid_vocab
-                )
-            else:
-                next_token_id, valid_vocab, value_str = self._handle_parameters(
-                    logits,
-                    self.par_type,
-                    valid_vocab,
-                    value_str
-                )
+                if stage == 1:
+                    next_token_id, found_name, valid_vocab = self._handle_func_name(
+                        logits,
+                        found_name,
+                        valid_vocab
+                    )
+                else:
+                    next_token_id, valid_vocab, value_str = self._handle_parameters(
+                        logits,
+                        self.par_type,
+                        valid_vocab,
+                        value_str
+                    )
 
 
-            if found_name:
-                self.current_token = self.model.decode(next_token_id)
-            else:
-                self.current_token = self.model.decode([next_token_id])
+                if found_name:
+                    self.current_token = self.model.decode(next_token_id)
+                else:
+                    self.current_token = self.model.decode([next_token_id])
 
-            if self.current_token.endswith(','):
-                self.current_token += ' '
-                self.input_ids.extend(after_comma_id)
+                if self.current_token.endswith(','):
+                    self.current_token += ' '
+                    self.input_ids.extend(after_comma_id)
 
-            if not done_json:
-                open_braces += self.current_token.count("{")
-                closed_braces += self.current_token.count("}")
+                if not done_json:
+                    open_braces += self.current_token.count("{")
+                    closed_braces += self.current_token.count("}")
 
-                self.injected = False
+                    self.injected = False
 
-                # ===== Stage of Name ===== 
-                self._stage_of_name()
-                
-                # ===== Stage of Parameters ===== 
-                if not self.extract_func_name and i < len(self.resources[self.func_name]):
-                    stage = 2
-                    if next_arg:
-                        if not self.inject_par:
-                            open_braces += 1
-                        self._stage_of_parameter(i)
-                        i += 1
-                        next_arg = 0
+                    # ===== Stage of Name ===== 
+                    self._stage_of_name()
+                    
+                    # ===== Stage of Parameters ===== 
+                    if not self.extract_func_name and i < len(self.resources[self.func_name]):
+                        stage = 2
+                        if not self.isvalue:
+                            if not self.inject_par:
+                                open_braces += 1
+                            self._stage_of_parameter(i)
+                            i += 1
+                            self.isvalue = True
+                            self.par_count += 1
 
-                    if self.parameters.count(',') == i:
-                        next_arg = 1
+                    if not self.injected:
+                        if found_name:
+                            self.input_ids.extend(next_token_id)
+                            found_name = False
+                        else:
+                            self.input_ids.append(next_token_id)
+                        self.output_text += self.current_token
+                        if self.inject_par:
+                            if '}' in self.current_token:
+                                self.current_token, _, _ = self.current_token.partition('}')
+                            self.parameters += self.current_token
+                            value_str += self.current_token
 
-                if not self.injected:
-                    if found_name:
-                        self.input_ids.extend(next_token_id)
-                        found_name = False
-                    else:
-                        self.input_ids.append(next_token_id)
-                    self.output_text += self.current_token
-                    if self.inject_par:
-                        if '}' in self.current_token:
-                            self.current_token, _, _ = self.current_token.partition('}')
-                        self.parameters += self.current_token
-                        value_str += self.current_token
+                    if open_braces == closed_braces:
+                        if self.inject_par:
+                            self.output_text, braces, _ = self.output_text.rpartition('}}')
+                            self.output_text += braces
+                            done_json = 1
 
-                if open_braces == closed_braces:
-                    if self.inject_par:
-                        self.output_text, braces, _ = self.output_text.rpartition('}}')
-                        self.output_text += braces
-                        done_json = 1
-            else:
-                break
-            print(self.output_text)
-            print(f"Par values: [{value_str}]\n")
+                    if self.inject_par and self.isvalue and self.par_count == len(self.resources[self.func_name]):
+                        if len(value_str) >= len(input_str):
+                            self.output_text += "}}"
+                            done_json = 1
+                            print(self.output_text)
+                            break
 
-        print("\n#################################################\n")
+                else:
+                    break
+                print(self.output_text)
+
+            print("\n#################################################\n")
             
         end = time.time()
         print(f"Time: {(end - start) / 60:.2f}")
@@ -307,6 +311,14 @@ class Model():
     bach maygeneration chi tkhwira li tkhower lik hadchi
 
     thats it.
+
+    Add constrained decoding for the parameters, by implementing those:
+            1. Check the type of parameter if its string it must start with '"' and ends with it.
+            2. Check the type of parameter if its integer it must handle integers only and mask other tokens.
+            3. Check the type of parameter if its Number it must be a float ends with .\+ (0-9).
+            4. Check for extra quots or spaces.
+            5. if '{' or '}' in the value of parameter you should now count it as a real braces of the json, it must be a char only.
+
 
 """
 
