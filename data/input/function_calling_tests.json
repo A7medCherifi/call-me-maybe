@@ -1,6 +1,6 @@
 [
   {
-    "prompt": "What is the product of 3 and 5?"
+    "prompt": "Run the query 'INSERT INTO logs VALUES (1, 2, 3)' on the system database"
   },
   {
     "prompt": "What is the product of 12 and 4?"

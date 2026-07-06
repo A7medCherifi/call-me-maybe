@@ -218,7 +218,22 @@ class Model():
                     next_token_id = self._handle_parameters(logits, par_type)
                     self.current_token = self.model.decode([next_token_id])
 
-                    if ',' in self.current_token or '}' in self.current_token:
+                    par_finish = False
+                    token_to_add = self.current_token
+                    if par_type == 'string':
+                        if '"' in token_to_add:
+                            token_to_add = token_to_add.split('"')[0]
+                            par_finish = True
+                    else:
+                        if ',' in self.current_token or '}' in self.current_token:
+                            par_finish = True
+                            token_to_add = ""
+
+                    if par_finish:
+                        if token_to_add:
+                            self.output_text += token_to_add
+                            token_to_id = self.model.encode(token_to_add)[0].tolist()
+                            self.input_ids.extend(token_to_id)
                         i += 1
                         if i < len(self.resources[self.func_name]):
                             sep_str = ""
