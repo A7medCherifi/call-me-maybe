@@ -27,6 +27,7 @@ class Model():
         self.resources = dict()
         self.all_prompts = list()
         self.valid_digits = list()
+        self.invalid_tokens = list()
 
         self.input_ids = None
         self.const_prompt_ids = None
@@ -66,7 +67,8 @@ class Model():
         self.prompt = f"""{self.input_str} \
         JSON output: \
         """
-        json_start = "{" + f'"prompt": "{self.input_str}", "name": "'
+        input_str = json.dumps(self.input_str)
+        json_start = "{" + f'"prompt": {input_str}, "name": "'
         self.prompt += json_start
         self.output_text = json_start
 
@@ -161,11 +163,17 @@ class Model():
             logits = np.array(logits)
             mask = np.full_like(logits, -float('inf'))
             mask[valid_vocab] = logits[valid_vocab]
-            return int(np.argmax(mask))
+            return [int(np.argmax(mask))]
         else:
-            int(np.argmax(logits))
-            
-            return 
+            logits = np.array(logits)
+            mask = copy.deepcopy(logits)
+            if not self.invalid_tokens:
+                tab_id = self.model.encode('\t')[0].tolist()
+                self.invalid_tokens.append(tab_id)
+                newline_id = self.model.encode('\n')[0].tolist()
+                self.invalid_tokens.append(newline_id)
+            mask[self.invalid_tokens] = -float('inf')
+            return [int(np.argmax(mask))]
         
 
     def run_model(self, input_str):
@@ -216,12 +224,12 @@ class Model():
                 elif stage == 4:
                     par_type = self.resources[self.func_name][i][1]
                     next_token_id = self._handle_parameters(logits, par_type)
-                    self.current_token = self.model.decode([next_token_id])
+                    self.current_token = self.model.decode(next_token_id)
 
                     par_finish = False
                     token_to_add = self.current_token
                     if par_type == 'string':
-                        if '"' in token_to_add:
+                        if '"' in token_to_add and not '\"' in token_to_add:
                             token_to_add = token_to_add.split('"')[0]
                             par_finish = True
                     else:
@@ -247,6 +255,7 @@ class Model():
                             sep_id = self.model.encode(sep_str)[0].tolist()
                             self.input_ids.extend(sep_id)
                             self.output_text += sep_str
+                            self.par_value = ""
                             stage = 3
                         else:
                             end_str = ""
@@ -257,51 +266,20 @@ class Model():
                             sep_id = self.model.encode(end_str)[0].tolist()
                             self.input_ids.extend(sep_id)
                             self.output_text += end_str
-                            if self.output_text.count('{') == self.output_text.count('}'):
-                                stage = 5
-                            else:
-                                raise Exception("Invalid Json format!")
+                            stage = 5
                     else:
-                        self.input_ids.append(next_token_id)
+                        if isinstance(next_token_id, list):
+                            self.input_ids.extend(next_token_id)
+                        else:
+                            self.input_ids.append(next_token_id)
                         self.output_text += self.current_token
                         self.par_value += self.current_token
 
                 print(self.output_text)
 
-            json.load(self.output_text)
+            json.loads(self.output_text)
             print("\n#################################################\n")
             
         end = time.time()
         print(f"Time: {(end - start) / 60:.2f}")
-
-
-
-
-"""
-
-    Fixed the token injection that you do, it miss it out if you give ',' in the prompt, 
-
-    Fixed double '""' and find a way to make sure that he will stop and return a valid json
-
-    3awed 9ad constrained decoding l digits cause ma3jbnich hadik ghir mslka makhdamach mzn
-
-
-
-    moraha handli l input dyal user ou kifach ghadi it3amel m3ah make some code rules
-
-    bach maygeneration chi tkhwira li tkhower lik hadchi
-
-    thats it.
-
-    Add constrained decoding for the parameters, by implementing those:
-            1. Check the type of parameter if its string it must start with '"' and ends with it.
-            2. Check the type of parameter if its integer it must handle integers only and mask other tokens.
-            3. Check the type of parameter if its Number it must be a float ends with .\+ (0-9).
-            4. Check for extra quots or spaces.
-            5. if '{' or '}' in the value of parameter you should now count it as a real braces of the json, it must be a char only.
-
-
-"""
-
-
 

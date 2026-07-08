@@ -6,12 +6,12 @@ class CallingFunction(BaseModel):
 
 
 class ParameterType(BaseModel):
-	type: str
+	type: str = Field(min_length=1, str_strip_whitespace=True)
 
 
 class DefinitionFunction(BaseModel):
-	name: str
-	description: str
+	name: str = Field(min_length=1, str_strip_whitespace=True)
+	description: str 
 	parameters: dict[str, ParameterType]
 	returns: dict[str, str]
 
