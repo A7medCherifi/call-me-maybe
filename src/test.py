@@ -3,6 +3,7 @@ import copy
 import re
 import ast
 import time
+import json
 from llm_sdk import Small_LLM_Model
 
 
@@ -162,7 +163,9 @@ class Model():
             mask[valid_vocab] = logits[valid_vocab]
             return int(np.argmax(mask))
         else:
-            return int(np.argmax(logits))
+            int(np.argmax(logits))
+            
+            return 
         
 
     def run_model(self, input_str):
@@ -254,7 +257,10 @@ class Model():
                             sep_id = self.model.encode(end_str)[0].tolist()
                             self.input_ids.extend(sep_id)
                             self.output_text += end_str
-                            stage = 5
+                            if self.output_text.count('{') == self.output_text.count('}'):
+                                stage = 5
+                            else:
+                                raise Exception("Invalid Json format!")
                     else:
                         self.input_ids.append(next_token_id)
                         self.output_text += self.current_token
@@ -262,6 +268,7 @@ class Model():
 
                 print(self.output_text)
 
+            json.load(self.output_text)
             print("\n#################################################\n")
             
         end = time.time()
