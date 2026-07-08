@@ -48,14 +48,15 @@ class Model():
         const_prompt = f"""
             Functions Data: \
                 {self.functions_data} \
-            Extract the function name from Functions Data and parameters as a valid JSON object. \
+            Extract the function name from Functions Data and valid parameters as a valid JSON object. \
             Example: \
                 Input text: What is the sum of 2 and 3? \
                 JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
             Rules: \
-                1. If a parameter type is a Number cast it to a float. \
-                2. If a parameter type is an Integer keep it as a valid integer not float. \
-                2. Output ONLY the raw JSON. \
+                1. If a parameter type is a 'number' cast it to a float. \
+                2. If a parameter type is an 'integer' keep it as a valid integer NOT float. \
+                3. If a parameter key is regex extract a valid regex value always. \
+                4. Output ONLY the raw JSON. \
             Input Text: \
         """
         self.const_prompt_ids = self.model.encode(const_prompt)[0].tolist()
@@ -115,7 +116,7 @@ class Model():
 
     def _extract_data_from_input(self):
         for fn in self.manager.definition_functions:
-            self.functions_data += f"Name: {fn['name']} | Parameters: {fn['parameters']}\n"
+            self.functions_data += f"Name: {fn['name']} | Parameters: {fn['parameters']} | Description of function: {fn['description']}\n"
             self.resources[fn['name']] = [(name, value['type']) for name, value in fn['parameters'].items()]
             func_ids = self.model.encode(fn['name'])[0].tolist()
             self.vocab[fn['name']] = func_ids
@@ -225,6 +226,9 @@ class Model():
                             par_finish = True
                             token_to_add = ""
 
+                    if not par_finish and len(self.par_value) >= len(input_str):
+                        par_finish = True
+
                     if par_finish:
                         if token_to_add:
                             self.output_text += token_to_add
@@ -254,6 +258,7 @@ class Model():
                     else:
                         self.input_ids.append(next_token_id)
                         self.output_text += self.current_token
+                        self.par_value += self.current_token
 
                 print(self.output_text)
 
