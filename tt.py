@@ -1,9 +1,9 @@
-test = [1, 2, 3]
-aa = ['.', '-', '+', 'p', '0']
-vocab = list()
-for i in range(10):
-    vocab.extend(str(i))
+a = [1, 2, 3, 4]
 
-print(vocab[test])
+b = a
+
+b.pop(0)
+
+print(a)
 
 # print(vocab)

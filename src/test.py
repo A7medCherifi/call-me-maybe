@@ -10,6 +10,7 @@ class Model():
     def __init__(self, manager):
         self.model = Small_LLM_Model()
         self.manager = manager
+        
         self.functions_data = ""
         self.output_text = ""
         self.input_str = ""
@@ -18,9 +19,13 @@ class Model():
         self.func_name = ""
         self.parameters = ""
         self.current_token = ""
+
+        self.par_value = ""
+
+        self.vocab = dict()
         self.resources = dict()
         self.all_prompts = list()
-        self.vocab = dict()
+        self.valid_digits = list()
 
         self.input_ids = None
         self.const_prompt_ids = None
@@ -31,20 +36,12 @@ class Model():
         self.isvalue = False
         self.par_count = 0
 
-    def __get_valid_parameters(self, par_type):
+    def __get_valid_digits(self):
         valid_vocab = list()
-        if par_type == 'string':
-            pass
-        else:
-            vocab = ['+', '-', ',', '}}'] + [str(i) for i in range(10)]
-            if par_type == 'number':
-                vocab.append('.')
-            for element in vocab:
-                element_id = self.model.encode(element)[0].tolist()
-                if isinstance(element_id, list):
-                    valid_vocab.extend(element_id)
-                else:
-                    valid_vocab.append(element_id)
+        vocab = ['+', '-', ',', '}}', '.'] + [str(i) for i in range(10)]
+        for element in vocab:
+            element_id = self.model.encode(element)[0].tolist()
+            valid_vocab.extend(element_id)
         return valid_vocab
 
     def _encode_constant_prompt(self):
@@ -71,19 +68,18 @@ class Model():
         self.prompt += json_start
         self.output_text = json_start
 
-        tensor_ids = self.model.encode(self.prompt)
         self.input_ids = copy.deepcopy(self.const_prompt_ids)
-        self.input_ids += tensor_ids[0].tolist()
-
+        self.input_ids += self.model.encode(self.prompt)[0].tolist()
 
     def _stage_of_name(self, found_name, next_token_id, stage):
         if found_name:
             self.current_token = self.model.decode(next_token_id)
-            self.func_name += self.current_token.split('"')[0].strip()
+            splited_token = self.current_token.split('"')[0].strip()
+            self.func_name += splited_token
             spliter_id = self.model.encode('", ')[0].tolist()
             self.input_ids.extend(next_token_id)
             self.input_ids.extend(spliter_id)
-            self.output_text += self.current_token + '", '
+            self.output_text += splited_token + '", '
             stage = 2
         else:
             self.current_token = self.model.decode([next_token_id])
@@ -110,7 +106,6 @@ class Model():
             par_ids = self.model.encode(par_str)[0].tolist()
             self.input_ids.extend(par_ids)
             self.output_text += par_str
-            self.parameters += par_str
             stage = 4
             return stage
         else:
@@ -160,7 +155,7 @@ class Model():
 
     def _handle_parameters(self, logits, par_type):        
         if par_type in ['number', 'integer']:
-            valid_vocab = self.__get_valid_parameters(par_type)
+            valid_vocab = self.valid_digits
             logits = np.array(logits)
             mask = np.full_like(logits, -float('inf'))
             mask[valid_vocab] = logits[valid_vocab]
@@ -172,6 +167,7 @@ class Model():
     def run_model(self, input_str):
         self._extract_data_from_input()
         start = time.time()
+        self.valid_digits = self.__get_valid_digits()
         self._encode_constant_prompt()
         # after_comma_id = self.model.encode(' ')[0].tolist()
 
@@ -232,8 +228,8 @@ class Model():
                     if par_finish:
                         if token_to_add:
                             self.output_text += token_to_add
-                            token_to_id = self.model.encode(token_to_add)[0].tolist()
-                            self.input_ids.extend(token_to_id)
+                            token_to_add_id = self.model.encode(token_to_add)[0].tolist()
+                            self.input_ids.extend(token_to_add_id)
                         i += 1
                         if i < len(self.resources[self.func_name]):
                             sep_str = ""
