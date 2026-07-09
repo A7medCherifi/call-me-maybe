@@ -4,6 +4,7 @@ import re
 import ast
 import time
 import json
+
 from llm_sdk import Small_LLM_Model
 
 
@@ -29,6 +30,8 @@ class Model():
         self.valid_digits = list()
         self.invalid_tokens = list()
 
+        self.output = list()
+
         self.input_ids = None
         self.const_prompt_ids = None
         self.extract_func_name = True
@@ -38,9 +41,11 @@ class Model():
         self.isvalue = False
         self.par_count = 0
 
-    def __get_valid_digits(self):
+    def __get_valid_digits(self, par_type):
         valid_vocab = list()
-        vocab = ['+', '-', ',', '}}', '.'] + [str(i) for i in range(10)]
+        vocab = ['+', '-', ',', '}}'] + [str(i) for i in range(10)]
+        if par_type == 'number':
+            vocab.append('.')
         for element in vocab:
             element_id = self.model.encode(element)[0].tolist()
             valid_vocab.extend(element_id)
@@ -56,7 +61,7 @@ class Model():
                 JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
             Rules: \
                 1. If a parameter type is a 'number' cast it to a float. \
-                2. If a parameter type is an 'integer' keep it as a valid integer NOT float. \
+                2. If a parameter type is an 'integer' cast it to int. \
                 3. If a parameter key is regex extract a valid regex value always. \
                 4. Output ONLY the raw JSON. \
             Input Text: \
@@ -119,7 +124,7 @@ class Model():
 
     def _extract_data_from_input(self):
         for fn in self.manager.definition_functions:
-            self.functions_data += f"Name: {fn['name']} | Parameters: {fn['parameters']} | Description of function: {fn['description']}\n"
+            self.functions_data += f"Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             self.resources[fn['name']] = [(name, value['type']) for name, value in fn['parameters'].items()]
             func_ids = self.model.encode(fn['name'])[0].tolist()
             self.vocab[fn['name']] = func_ids
@@ -159,7 +164,7 @@ class Model():
 
     def _handle_parameters(self, logits, par_type):        
         if par_type in ['number', 'integer']:
-            valid_vocab = self.valid_digits
+            valid_vocab = self.__get_valid_digits(par_type)
             logits = np.array(logits)
             mask = np.full_like(logits, -float('inf'))
             mask[valid_vocab] = logits[valid_vocab]
@@ -176,10 +181,10 @@ class Model():
             return [int(np.argmax(mask))]
         
 
-    def run_model(self, input_str):
+    def run_model(self):
         self._extract_data_from_input()
         start = time.time()
-        self.valid_digits = self.__get_valid_digits()
+        
         self._encode_constant_prompt()
         # after_comma_id = self.model.encode(' ')[0].tolist()
 
@@ -228,12 +233,19 @@ class Model():
 
                     par_finish = False
                     token_to_add = self.current_token
+                    # if '}}' in token_to_add:
+                    #     token_to_add = token_to_add.split('}}')[0]
+                    #     self.output_text += token_to_add + '}}'
+                    #     break
                     if par_type == 'string':
-                        if '"' in token_to_add and not '\"' in token_to_add:
+                        if '"' in token_to_add and not '\\"' in token_to_add:
                             token_to_add = token_to_add.split('"')[0]
                             par_finish = True
+                        # elif '}}' in token_to_add:
+                        #     par_finish = True
+                        #     token_to_add = token_to_add.split('}')[0]
                     else:
-                        if ',' in self.current_token or '}' in self.current_token:
+                        if ',' in self.current_token or '}}' in self.current_token:
                             par_finish = True
                             token_to_add = ""
 
@@ -275,11 +287,17 @@ class Model():
                         self.output_text += self.current_token
                         self.par_value += self.current_token
 
-                print(self.output_text)
+                # print(self.output_text)
 
-            json.loads(self.output_text)
+            # Convert the JSON string to a Python object
+            data = json.loads(self.output_text)
+            self.output.append(data)
+            print(self.output_text)
             print("\n#################################################\n")
             
         end = time.time()
         print(f"Time: {(end - start) / 60:.2f}")
+        return self.output
+
+
 

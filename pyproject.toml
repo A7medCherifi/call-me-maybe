@@ -9,6 +9,7 @@ dependencies = [
     "huggingface-hub>=0.20.0",
     "pydantic>=2.13.4",
     "accelerate>=1.14.0",
+    "fire>=0.7.1",
 ]
 
 [build-system]
