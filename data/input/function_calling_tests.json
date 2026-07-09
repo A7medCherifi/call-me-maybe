@@ -1,11 +1,8 @@
 [
   {
-    "prompt": "What is the sum of 2 and 3?"
+    "prompt": "Read the file at /home/user/data.json with utf-8 encoding"
   },
   {
-    "prompt": "What is the sum of 265 and 345?"
-  },
-  {
-    "prompt": "Greet shrek"
+    "prompt": "Format template: Say \"hello\" to {name}"
   }
 ]

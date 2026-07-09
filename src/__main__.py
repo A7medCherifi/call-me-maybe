@@ -31,3 +31,18 @@ def main():
 
 if __name__ == "__main__":
 	main()
+     
+
+# uv run python -m src \
+#     --functions_definition data/input/functions_definition.json \
+#     --input data/input/function_calling_tests.json \
+#     --output data/output/function_calls.json
+
+
+# uv run python -m moulinette grade_student_answers data/output/function_calls.json
+
+# uv run python -m moulinette grade_student_answers --student_answer_path data/output/function_calls.json
+
+# uv run python -m moulinette grade_student_answers \
+#     --student_answer_path data/output/function_calls.json \
+#     --set private

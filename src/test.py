@@ -284,15 +284,19 @@ class Model():
                             self.input_ids.extend(next_token_id)
                         else:
                             self.input_ids.append(next_token_id)
-                        self.output_text += self.current_token
-                        self.par_value += self.current_token
+                        if not self.par_value:
+                            self.output_text += self.current_token.strip()
+                            self.par_value += self.current_token.strip()
+                        else:
+                            self.output_text += self.current_token
+                            self.par_value += self.current_token
 
-                # print(self.output_text)
+                print(f"{self.output_text}")
 
             # Convert the JSON string to a Python object
             data = json.loads(self.output_text)
             self.output.append(data)
-            print(self.output_text)
+            # print(self.output_text)
             print("\n#################################################\n")
             
         end = time.time()

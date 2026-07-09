@@ -1,98 +1,98 @@
 [
   {
-    "prompt": "What is the sum of 2 and 3?",
-    "name": "fn_add_numbers",
+    "prompt": "What is the product of 3 and 5?",
+    "name": "fn_multiply_numbers",
     "parameters": {
-      "a": 2.0,
-      "b": 3.0
+      "a": 3.0,
+      "b": 5.0
     },
-    "expected_output": 5.0
+    "expected_output": 15.0
   },
   {
-    "prompt": "What is the sum of 265 and 345?",
-    "name": "fn_add_numbers",
+    "prompt": "What is the product of 12 and 4?",
+    "name": "fn_multiply_numbers",
     "parameters": {
-      "a": 265.0,
-      "b": 345.0
+      "a": 12.0,
+      "b": 4.0
     },
-    "expected_output": 610.0
+    "expected_output": 48.0
   },
   {
-    "prompt": "Greet shrek",
-    "name": "fn_greet",
+    "prompt": "Is 4 an even number?",
+    "name": "fn_is_even",
     "parameters": {
-      "name": "shrek"
+      "n": 4
     },
-    "expected_output": "Hello, shrek!"
+    "expected_output": true
   },
   {
-    "prompt": "Greet john",
-    "name": "fn_greet",
+    "prompt": "Is 7 an even number?",
+    "name": "fn_is_even",
     "parameters": {
-      "name": "john"
+      "n": 7
     },
-    "expected_output": "Hello, john!"
+    "expected_output": false
   },
   {
-    "prompt": "Reverse the string 'hello'",
-    "name": "fn_reverse_string",
+    "prompt": "Calculate compound interest on 1234567.89 at 0.0375 rate for 23 years",
+    "name": "fn_calculate_compound_interest",
     "parameters": {
-      "s": "hello"
+      "principal": 1234567.89,
+      "rate": 0.0375,
+      "years": 23
     },
-    "expected_output": "olleh"
+    "expected_output": 2878998.2507434245
   },
   {
-    "prompt": "Reverse the string 'world'",
-    "name": "fn_reverse_string",
+    "prompt": "Execute SQL query 'SELECT * FROM users' on the production database",
+    "name": "fn_execute_sql_query",
     "parameters": {
-      "s": "world"
+      "query": "SELECT * FROM users",
+      "database": "production"
     },
-    "expected_output": "dlrow"
+    "expected_output": "Executing on production: SELECT * FROM users"
   },
   {
-    "prompt": "What is the square root of 16?",
-    "name": "fn_get_square_root",
+    "prompt": "Run the query 'INSERT INTO logs VALUES (1, 2, 3)' on the system database",
+    "name": "fn_execute_sql_query",
     "parameters": {
-      "a": 16.0
+      "query": "INSERT INTO logs VALUES (1, 2, 3)",
+      "database": "system"
     },
-    "expected_output": 4.0
+    "expected_output": "Executing on system: INSERT INTO logs VALUES (1, 2, 3)"
   },
   {
-    "prompt": "Calculate the square root of 144",
-    "name": "fn_get_square_root",
+    "prompt": "Read the file at /home/user/data.json with utf-8 encoding",
+    "name": "fn_read_file",
     "parameters": {
-      "a": 144.0
+      "path": "/home/user/data.json",
+      "encoding": "utf-8"
     },
-    "expected_output": 12.0
+    "expected_output": "Reading /home/user/data.json with utf-8"
   },
   {
-    "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS",
-    "name": "fn_substitute_string_with_regex",
+    "prompt": "Read C:\\Users\\john\\config.ini with latin-1 encoding",
+    "name": "fn_read_file",
     "parameters": {
-      "source_string": "Hello 34 I'm 233 years old",
-      "regex": "\\d+",
-      "replacement": "NUMBERS"
+      "path": "C:\\Users\\john\\config.ini",
+      "encoding": "latin-1"
     },
-    "expected_output": "Hello NUMBERS I'm NUMBERS years old"
+    "expected_output": "Reading C:\\Users\\john\\config.ini with latin-1"
   },
   {
-    "prompt": "Replace all vowels in 'Programming is fun' with asterisks",
-    "name": "fn_substitute_string_with_regex",
+    "prompt": "Format template: Hello {user}'s profile!",
+    "name": "fn_format_template",
     "parameters": {
-      "source_string": "Programming is fun",
-      "regex": "[aeiouAEIOU]",
-      "replacement": "*"
+      "template": "Hello {user}'s profile!"
     },
-    "expected_output": "Pr*gr*mm*ng *s f*n"
+    "expected_output": "Template: Hello {user}'s profile!"
   },
   {
-    "prompt": "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'",
-    "name": "fn_substitute_string_with_regex",
+    "prompt": "Format template: Say \"hello\" to {name}",
+    "name": "fn_format_template",
     "parameters": {
-      "source_string": "The cat sat on the mat with another cat",
-      "regex": "\\bcat\\b",
-      "replacement": "dog"
+      "template": "Say \"hello\" to {name}"
     },
-    "expected_output": "The dog sat on the mat with another dog"
+    "expected_output": "Template: Say \"hello\" to {name}"
   }
 ]
