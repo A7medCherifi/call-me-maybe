@@ -1,24 +1,30 @@
 from src.parsing import parse_calling_function, parse_definition_function
 from src.manager import Manager
-from src.test import Model
+from src.model_runner import Model
 
 import json
 from pathlib import Path
-# from src.template import create_template
 
 
 def main():
     manager = Manager()
-    prompts_calling = parse_calling_function('data/input/function_calling_tests.json')
-    definition_fn = parse_definition_function('data/input/functions_definition.json')
+    prompts_calling = parse_calling_function(
+         'data/input/function_calling_tests.json')
+    definition_fn = parse_definition_function(
+         'data/input/functions_definition.json')
     if not prompts_calling or not definition_fn:
         exit(1)
     manager.definition_functions = definition_fn
     manager.prompts_calling = prompts_calling
-    # create_template(manager)
-    # print(manager.prompts_calling[0].prompt)
+
+    # try:
     model = Model(manager)
     data = model.run_model()
+    # except json.JSONDecodeError as e:
+    #     print(f"Error, JSON failed: {e}")
+    # except Exception as e:
+    #     print(f"Error: {e}")
+    #     exit(1)
 
     project_root = Path(__file__).parent.parent
     output_path = project_root / "data" / "output" / "function_calls.json"
@@ -30,8 +36,8 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
-     
+    main()
+
 
 # uv run python -m src \
 #     --functions_definition data/input/functions_definition.json \
@@ -39,9 +45,11 @@ if __name__ == "__main__":
 #     --output data/output/function_calls.json
 
 
-# uv run python -m moulinette grade_student_answers data/output/function_calls.json
+# uv run python -m moulinette grade_student_answers
+#  data/output/function_calls.json
 
-# uv run python -m moulinette grade_student_answers --student_answer_path data/output/function_calls.json
+# uv run python -m moulinette grade_student_answers
+# --student_answer_path data/output/function_calls.json
 
 # uv run python -m moulinette grade_student_answers \
 #     --student_answer_path data/output/function_calls.json \
