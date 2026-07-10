@@ -8,18 +8,18 @@ from llm_sdk import Small_LLM_Model
 
 
 class Model:
-    """A class representing the function-calling LLM execution engine.
+    """A class representing the function-calling LLM execution engine.\
 
-    This class handles the token-by-token constrained decoding loop, injecting
-    structured grammar constraints to guide the llm model into producing
-    guaranteed valid answer and valid JSON output matching predefined schemas.
+    This class handles the token-by-token constrained decoding loop, injecting\
+    structured grammar constraints to guide the llm model into producing\
+    guaranteed valid answer and valid JSON output matching predefined schemas.\
     """
 
     def __init__(self, manager: Any) -> None:
-        """Initializes the Model with necessary states.
+        """Initializes the Model with necessary states.\
 
-        Args:
-            manager (Any): The manager that handles input files.
+        Args:\
+            manager (Any): The manager that handles input files.\
         """
         self.model: Small_LLM_Model = Small_LLM_Model()
         self.manager: Any = manager
@@ -68,7 +68,7 @@ class Model:
             list: of encoded valid vocab
         """
         valid_vocab: List[int] = list()
-        vocab: List[str] = ['True', 'False']
+        vocab: List[str] = ['true', 'false']
         for element in vocab:
             element_id: List[int] = self.model.encode(element)[0].tolist()
             valid_vocab.extend(element_id)
@@ -80,26 +80,24 @@ class Model:
         of what to do that llm needs
         """
         const_prompt: str = f"""
-            Functions Data:
-                {self.functions_data}
-            Extract the function name from Functions Data and valid parameters
-                as a valid JSON object.
-            Example: \
-                Input text: What is the sum of 2 and 3?
-                JSON output: \"name\": \"fn_add_numbers\", \"parameters\": \
-                    {{"a": 2.0, "b": 3.0}}.
+            Functions Data:\
+                {self.functions_data}\
+            Extract the function name from Functions Data and valid parameters \
+                as a valid JSON object.\
+            Examples: \
+                Input text: What is the sum of 2 and 3? \
+                JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
             Rules: \
-                1. If a parameter type is a number cast it to a float always.
-                2. If a parameter key is regex extract a valid regex \
-                    value always.
+                1. If a parameter type is a number cast it to a float always.\
                 3. Output ONLY the raw JSON. \
+                4. If a parameter key is regex the value must be a valid REGEX sequence of characters\
             Input Text: \
         """
         self.const_prompt_ids = self.model.encode(const_prompt)[0].tolist()
 
     def _stage_of_prompt(self) -> None:
         """
-        Encode the prompt of the user and inject
+        Encode the prompt of the user and inject \
         the prompt into the output string
         """
         self.prompt = f"""{self.input_str} \
@@ -294,6 +292,9 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
         """
         token_to_add: str = self.current_token
         par_finish: bool = False
+        if par_type == 'boolean':
+            if token_to_add in ['true', 'false']:
+                par_finish = True
         if par_type == 'string':
             if '"' in token_to_add and '\\"' not in token_to_add:
                 token_to_add = token_to_add.split('"')[0]
@@ -351,6 +352,15 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             stage: int = 3
 
         else:
+            if par_type == 'number':
+                value_f: float = float(self.number_value)
+                self.output_text += str(value_f)
+                self.number_value = ""
+            elif par_type == 'integer':
+                value_i: int = int(self.number_value)
+                self.output_text += str(value_i)
+                self.number_value = ""
+
             end_str: str = ""
             if par_type == 'string':
                 end_str = '"}}'
@@ -364,11 +374,11 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
 
     def run_model(self) -> List[Dict[str, Any]]:
         """
-        Executes the pipeline loop processing input
-        and generate the valid json.
+        Executes the pipeline loop processing input\
+        and generate the valid json.\
 
-        Returns:
-            list(): A collection of generated json.
+        Returns:\
+            list(): A collection of generated json.\
         """
         self._extract_data_from_input()
         start: float = time.time()
@@ -419,7 +429,7 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
                         else:
                             self.input_ids.append(next_token_ids)
 
-                        if not self.par_value and par_type == 'string':
+                        if not self.par_value and (par_type == 'string' or par_type == 'boolean'):
                             self.output_text += self.current_token.strip()
                             self.par_value += self.current_token.strip()
                         elif par_type == 'string' or par_type == 'boolean':
