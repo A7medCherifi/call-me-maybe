@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.13.4",
     "accelerate>=1.14.0",
     "fire>=0.7.1",
+    "mypy>=2.2.0",
 ]
 
 [build-system]

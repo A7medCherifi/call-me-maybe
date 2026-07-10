@@ -2,7 +2,7 @@ import numpy as np
 import copy
 import time
 import json
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 from llm_sdk import Small_LLM_Model
 
@@ -40,8 +40,8 @@ class Model:
         self.invalid_tokens: List[Any] = list()
         self.output: List[Dict[str, Any]] = list()
 
-        self.input_ids: Optional[List[int]] = None
-        self.const_prompt_ids: Optional[List[int]] = None
+        self.input_ids: List[int] = list()
+        self.const_prompt_ids: List[int] = list()
 
     def __get_valid_digits(self, par_type: str) -> List[int]:
         """Get valid vocabulary for Digits
@@ -56,6 +56,19 @@ class Model:
         vocab: List[str] = ['+', '-', ',', '}}'] + [str(i) for i in range(10)]
         if par_type == 'number':
             vocab.append('.')
+        for element in vocab:
+            element_id: List[int] = self.model.encode(element)[0].tolist()
+            valid_vocab.extend(element_id)
+        return valid_vocab
+    
+    def __get_valid_boolean(self) -> List[int]:
+        """Get valid vocabulary for boolean
+
+        Returns:
+            list: of encoded valid vocab
+        """
+        valid_vocab: List[int] = list()
+        vocab: List[str] = ['True', 'False']
         for element in vocab:
             element_id: List[int] = self.model.encode(element)[0].tolist()
             valid_vocab.extend(element_id)
@@ -98,7 +111,7 @@ class Model:
         self.output_text = json_start
 
         self.input_ids = copy.deepcopy(self.const_prompt_ids)
-        self.input_ids += self.model.encode(self.prompt)[0].tolist()
+        self.input_ids.extend(self.model.encode(self.prompt)[0].tolist())
 
     def _stage_of_name(self, found_name: bool, next_token_id:
                        Union[int, List[int]], stage: int) -> int:
@@ -249,6 +262,12 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             valid_vocab: List[int] = self.__get_valid_digits(par_type)
             logits = np.array(logits)
             mask: np.ndarray = np.full_like(logits, -float('inf'))
+            mask[valid_vocab] = logits[valid_vocab]
+            return [int(np.argmax(mask))]
+        elif par_type == "boolean":
+            valid_vocab = self.__get_valid_boolean()
+            logits = np.array(logits)
+            mask = np.full_like(logits, -float('inf'))
             mask[valid_vocab] = logits[valid_vocab]
             return [int(np.argmax(mask))]
         else:
@@ -403,7 +422,7 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
                         if not self.par_value and par_type == 'string':
                             self.output_text += self.current_token.strip()
                             self.par_value += self.current_token.strip()
-                        elif par_type == 'string':
+                        elif par_type == 'string' or par_type == 'boolean':
                             self.output_text += self.current_token
                             self.par_value += self.current_token
                         else:
