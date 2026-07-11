@@ -21,14 +21,15 @@ def main() -> None:
     manager.definition_functions = definition_fn
     manager.prompts_calling = prompts_calling
 
-    # try:
-    model: Model = Model(manager)
-    data: List[Dict[str, Any]] = model.run_model()
-    # except json.JSONDecodeError as e:
-    #     print(f"Error, JSON failed: {e}")
-    # except Exception as e:
-    #     print(f"Error: {e}")
-    #     exit(1)
+    try:
+        model: Model = Model(manager)
+        data: List[Dict[str, Any]] = model.run_model()
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON failed: {e}")
+        exit(1)
+    except Exception as e:
+        print(f"[ERROR]: {e}")
+        exit(1)
 
     project_root: Path = Path(__file__).parent.parent
     output_path: Path = project_root/"data"/"output"/"function_calls.json"

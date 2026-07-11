@@ -353,11 +353,11 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
 
         else:
             if par_type == 'number':
-                value_f: float = float(self.number_value)
+                value_f = float(self.number_value)
                 self.output_text += str(value_f)
                 self.number_value = ""
             elif par_type == 'integer':
-                value_i: int = int(self.number_value)
+                value_i = int(self.number_value)
                 self.output_text += str(value_i)
                 self.number_value = ""
 

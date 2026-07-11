@@ -76,5 +76,5 @@ def parse_definition_function(file_name: str) -> List[Dict[str, Any]]:
         return valid
     except (FileNotFoundError, json.JSONDecodeError, Exception,
             ValidationError) as e:
-        print(f"Error: {e}")
+        print(f"[ERROR]: {e}")
         return []
