@@ -3,17 +3,44 @@ from src.manager import Manager
 from src.model_runner import Model
 
 import json
+import argparse
+
 from pathlib import Path
 from typing import Any, Dict, List
 
 
 def main() -> None:
     """The main function that runs everything"""
+
+    parse = argparse.ArgumentParser()
+
+    parse.add_argument(
+        "--functions_definition",
+        type=str,
+        default="data/input/functions_definition.json",
+        help="Path to the function definitions JSON file."
+        )
+
+    parse.add_argument(
+        "--input",
+        type=str,
+        default="data/input/function_calling_tests.json",
+        help="Path to the input prompts JSON file."
+        )
+
+    parse.add_argument(
+        "--output",
+        type=str,
+        default="data/output/function_calls.json",
+        help="Path to save the output JSON file."
+        )
+
+    args = parse.parse_args()
     manager: Manager = Manager()
     prompts_calling: List[Dict[str, Any]] = parse_calling_function(
-         'data/input/function_calling_tests.json')
+         args.input)
     definition_fn: List[Dict[str, Any]] = parse_definition_function(
-         'data/input/functions_definition.json')
+         args.functions_definition)
 
     if not prompts_calling or not definition_fn:
         exit(1)
@@ -31,13 +58,10 @@ def main() -> None:
         print(f"[ERROR]: {e}")
         exit(1)
 
-    project_root: Path = Path(__file__).parent.parent
-    output_path: Path = project_root/"data"/"output"/"function_calls.json"
+    output_path: Path = Path(args.output)
 
-    # Make sure the directory exists
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Save it
     with open(output_path, "w") as f:
         json.dump(data, f, indent=4)
 

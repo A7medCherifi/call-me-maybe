@@ -60,7 +60,7 @@ class Model:
             element_id: List[int] = self.model.encode(element)[0].tolist()
             valid_vocab.extend(element_id)
         return valid_vocab
-    
+
     def __get_valid_boolean(self) -> List[int]:
         """Get valid vocabulary for boolean
 
@@ -82,15 +82,17 @@ class Model:
         const_prompt: str = f"""
             Functions Data:\
                 {self.functions_data}\
-            Extract the function name from Functions Data and valid parameters \
+            Extract the function name from Functions Data and valid parameters
                 as a valid JSON object.\
             Examples: \
                 Input text: What is the sum of 2 and 3? \
-                JSON output: \"name\": \"fn_add_numbers\", \"parameters\": {{"a": 2.0, "b": 3.0}}.\
+                JSON output: \"name\": \"fn_add_numbers\",
+                \"parameters\": {{"a": 2.0, "b": 3.0}}.\
             Rules: \
                 1. If a parameter type is a number cast it to a float always.\
                 3. Output ONLY the raw JSON. \
-                4. If a parameter key is regex the value must be a valid REGEX sequence of characters\
+                4. If a parameter key is regex the value
+                must be a valid REGEX sequence of characters\
             Input Text: \
         """
         self.const_prompt_ids = self.model.encode(const_prompt)[0].tolist()
@@ -363,7 +365,7 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
 
             end_str: str = ""
             if par_type == 'string':
-                end_str = '"}}'
+                end_str = '"}'
             else:
                 end_str = '}}'
             sep_id = self.model.encode(end_str)[0].tolist()
@@ -400,7 +402,8 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
                     self.input_ids)
 
                 if stage == 1:
-                    result: Tuple = self._handle_func_name(
+                    result: Tuple[int | list[int], bool, Dict[str, List[int]]
+                                  ] = self._handle_func_name(
                         logits, found_name, valid_vocab
                     )
                     next_token_id_res, found_name, valid_vocab = result
@@ -429,7 +432,8 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
                         else:
                             self.input_ids.append(next_token_ids)
 
-                        if not self.par_value and (par_type == 'string' or par_type == 'boolean'):
+                        if not self.par_value and (par_type == 'string' or
+                                                   par_type == 'boolean'):
                             self.output_text += self.current_token.strip()
                             self.par_value += self.current_token.strip()
                         elif par_type == 'string' or par_type == 'boolean':
