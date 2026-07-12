@@ -67,7 +67,7 @@ def parse_definition_function(file_name: str) -> List[Dict[str, Any]]:
     functions definition json
 
     return:
-        list(): list of valid dictionaries
+        list():  list of valid dictionaries
     """
     try:
         with open(file_name, 'r') as f:

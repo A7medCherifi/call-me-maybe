@@ -45,7 +45,8 @@ class Model:
         self.const_prompt_ids: List[int] = list()
 
     def __get_valid_digits(self, par_type: str) -> List[int]:
-        """Get valid vocabulary for Digits
+        """
+        Get valid vocabulary for Digits
 
         Args:
             par_tupe (str): parameter type
