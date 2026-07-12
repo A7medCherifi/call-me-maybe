@@ -52,10 +52,11 @@ def parse_calling_function(file_name: str) -> List[Dict[str, Any]]:
             CallingFunction(**e)
             valid.append(e)
         return valid
-    except (FileNotFoundError, json.JSONDecodeError, Exception,
-            ValidationError) as e:
+    except ValidationError as e:
+        print(f"[ERROR]: {e.errors()[0].get('msg')}")
+    except (FileNotFoundError, json.JSONDecodeError, Exception) as e:
         print(f"Error: {e}")
-        return []
+    return []
 
 
 def parse_definition_function(file_name: str) -> List[Dict[str, Any]]:
@@ -74,7 +75,8 @@ def parse_definition_function(file_name: str) -> List[Dict[str, Any]]:
             DefinitionFunction(**e)
             valid.append(e)
         return valid
-    except (FileNotFoundError, json.JSONDecodeError, Exception,
-            ValidationError) as e:
+    except ValidationError as e:
+        print(f"[ERROR]: {e.errors()[0].get('msg')}")
+    except (FileNotFoundError, json.JSONDecodeError, Exception) as e:
         print(f"[ERROR]: {e}")
-        return []
+    return []

@@ -82,7 +82,7 @@ class Model:
         const_prompt: str = f"""
             Functions Data:\
                 {self.functions_data}\
-            Extract the function name from Functions Data and valid parameters
+            Extract the function name from Functions Data and valid parameters\
                 as a valid JSON object.\
             Examples: \
                 Input text: What is the sum of 2 and 3? \
@@ -91,7 +91,7 @@ class Model:
             Rules: \
                 1. If a parameter type is a number cast it to a float always.\
                 3. Output ONLY the raw JSON. \
-                4. If a parameter key is regex the value
+                4. If a parameter key is regex the value\
                 must be a valid REGEX sequence of characters\
             Input Text: \
         """
@@ -365,7 +365,7 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
 
             end_str: str = ""
             if par_type == 'string':
-                end_str = '"}'
+                end_str = '"}}'
             else:
                 end_str = '}}'
             sep_id = self.model.encode(end_str)[0].tolist()

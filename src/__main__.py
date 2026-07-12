@@ -51,19 +51,19 @@ def main() -> None:
     try:
         model: Model = Model(manager)
         data: List[Dict[str, Any]] = model.run_model()
+
+        output_path: Path = Path(args.output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(output_path, "w") as f:
+            json.dump(data, f, indent=4)
+
     except json.JSONDecodeError as e:
         print(f"[ERROR] JSON failed: {e}")
         exit(1)
     except Exception as e:
         print(f"[ERROR]: {e}")
         exit(1)
-
-    output_path: Path = Path(args.output)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(output_path, "w") as f:
-        json.dump(data, f, indent=4)
 
 
 if __name__ == "__main__":
