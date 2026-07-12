@@ -26,6 +26,7 @@ class Model:
 
         self.functions_data: str = ""
         self.output_text: str = ""
+        self.print_text: str = ""
         self.input_str: str = ""
         self.prompt: str = ""
         self.func_name: str = ""
@@ -109,6 +110,7 @@ class Model:
         json_start: str = "{" + f'"prompt": {input_str}, "name": "'
         self.prompt += json_start
         self.output_text = json_start
+        self.print_text = json_start
 
         self.input_ids = copy.deepcopy(self.const_prompt_ids)
         self.input_ids.extend(self.model.encode(self.prompt)[0].tolist())
@@ -135,6 +137,7 @@ class Model:
             self.input_ids.extend(next_token_id)
             self.input_ids.extend(spliter_id)
             self.output_text += splited_token + '", '
+            self.print_text += splited_token + '", '
             stage = 2
         else:
             assert isinstance(next_token_id, int)
@@ -142,6 +145,7 @@ class Model:
             self.func_name += self.current_token
             self.input_ids.append(next_token_id)
             self.output_text += self.current_token
+            self.print_text += self.current_token
         return stage
 
     def _stage_of_inject_parameter(self, stage: int) -> int:
@@ -158,6 +162,7 @@ class Model:
             inject_parameter_str)[0].tolist()
         self.input_ids.extend(parameter_ids)
         self.output_text += inject_parameter_str
+        self.print_text += inject_parameter_str
         stage = 3
         return stage
 
@@ -180,10 +185,12 @@ class Model:
             par_ids: List[int] = self.model.encode(par_str)[0].tolist()
             self.input_ids.extend(par_ids)
             self.output_text += par_str
+            self.print_text += par_str
             stage = 4
             return stage
         else:
             self.output_text += '}}'
+            self.print_text += '}}'
             stage = 5
             return stage
 
@@ -324,7 +331,10 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             tuple(): (stage, i)
         """
         if token_to_add:
-            self.output_text += token_to_add
+            if par_type != 'string':
+                self.output_text += token_to_add
+            self.print_text += token_to_add
+            self.par_value += token_to_add
             token_to_add_id: List[int] = self.model.encode(
                 token_to_add)[0].tolist()
             self.input_ids.extend(token_to_add_id)
@@ -349,11 +359,16 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
                 self.output_text += str(value_i)
                 self.number_value = ""
 
+            elif par_type == 'string':
+                res = json.dumps(self.par_value)
+                self.output_text += res[1:-1]
             self.output_text += sep_str
+            self.print_text += sep_str
             self.par_value = ""
             stage: int = 3
 
         else:
+            # print("in here 1>>>>>>>>")
             if par_type == 'number':
                 value_f = float(self.number_value)
                 self.output_text += str(value_f)
@@ -362,6 +377,9 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
                 value_i = int(self.number_value)
                 self.output_text += str(value_i)
                 self.number_value = ""
+            elif par_type == 'string':
+                res = json.dumps(self.par_value)
+                self.output_text += res[1:-1]
 
             end_str: str = ""
             if par_type == 'string':
@@ -371,7 +389,14 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             sep_id = self.model.encode(end_str)[0].tolist()
             self.input_ids.extend(sep_id)
             self.output_text += end_str
+            self.print_text += end_str
+            self.par_value = ""
             stage = 5
+        # if '}}' in self.output_text:
+        #     print("in here 2>>>>>>>>")
+        #     self.output_text, braces, _ = self.output_text.rpartition('}}')
+        #     self.output_text += braces
+        #     stage = 5
         return (stage, i)
 
     def run_model(self) -> List[Dict[str, Any]]:
@@ -434,17 +459,23 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
 
                         if not self.par_value and (par_type == 'string' or
                                                    par_type == 'boolean'):
-                            self.output_text += self.current_token.strip()
+                            if par_type == 'boolean':
+                                self.output_text += self.current_token.strip()
+                            self.print_text += self.current_token.strip()
                             self.par_value += self.current_token.strip()
                         elif par_type == 'string' or par_type == 'boolean':
-                            self.output_text += self.current_token
+                            if par_type == 'boolean':
+                                self.output_text += self.current_token
+                            self.print_text += self.current_token
                             self.par_value += self.current_token
                         else:
                             self.par_value += self.current_token
+                            self.print_text += self.current_token
                             self.number_value += self.current_token
 
-                print(f"{self.output_text}")
+                print(f"{self.print_text}")
 
+            print(f"\n{self.output_text}")
             data: Dict[str, Any] = json.loads(self.output_text)
             self.output.append(data)
             print("\n#################################################\n")

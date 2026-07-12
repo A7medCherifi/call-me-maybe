@@ -32,8 +32,8 @@ class DefinitionFunction(BaseModel):
     def strip_whitespaces(self) -> 'DefinitionFunction':
         if isinstance(self.name, str):
             value = self.name.strip()
-            if not value:
-                raise ValueError("Invalid input")
+            if not value or not value.isidentifier():
+                raise ValueError("Invalid Function name")
         return self
 
 
@@ -49,6 +49,8 @@ def parse_calling_function(file_name: str) -> List[Dict[str, Any]]:
             data: List[Dict[str, Any]] = json.load(f)
         valid: List[Dict[str, Any]] = []
         for e in data:
+            if len(e) != 1:
+                raise Exception("Many prompts in one Dict!, Expected only 1")
             CallingFunction(**e)
             valid.append(e)
         return valid
