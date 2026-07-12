@@ -351,13 +351,19 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             sep_id: List[int] = self.model.encode(sep_str)[0].tolist()
             self.input_ids.extend(sep_id)
             if par_type == 'number':
-                value_f: float = float(self.number_value)
-                self.output_text += str(value_f)
+                try:
+                    value_f: float = float(self.number_value)
+                    self.output_text += str(value_f)
+                except ValueError:
+                    self.output_text += self.number_value
                 self.number_value = ""
 
             elif par_type == 'integer':
-                value_i: int = int(self.number_value)
-                self.output_text += str(value_i)
+                try:
+                    value_i: int = int(self.number_value)
+                    self.output_text += str(value_i)
+                except ValueError:
+                    self.output_text += self.number_value
                 self.number_value = ""
 
             elif par_type == 'string':
@@ -369,14 +375,19 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             stage: int = 3
 
         else:
-            # print("in here 1>>>>>>>>")
             if par_type == 'number':
-                value_f = float(self.number_value)
-                self.output_text += str(value_f)
+                try:
+                    value_f = float(self.number_value)
+                    self.output_text += str(value_f)
+                except ValueError:
+                    self.output_text += self.number_value
                 self.number_value = ""
             elif par_type == 'integer':
-                value_i = int(self.number_value)
-                self.output_text += str(value_i)
+                try:
+                    value_i = int(self.number_value)
+                    self.output_text += str(value_i)
+                except ValueError:
+                    self.output_text += self.number_value
                 self.number_value = ""
             elif par_type == 'string':
                 res = json.dumps(self.par_value)
@@ -393,11 +404,6 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             self.print_text += end_str
             self.par_value = ""
             stage = 5
-        # if '}}' in self.output_text:
-        #     print("in here 2>>>>>>>>")
-        #     self.output_text, braces, _ = self.output_text.rpartition('}}')
-        #     self.output_text += braces
-        #     stage = 5
         return (stage, i)
 
     def run_model(self) -> List[Dict[str, Any]]:
