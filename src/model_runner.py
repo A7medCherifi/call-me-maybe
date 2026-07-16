@@ -2,9 +2,9 @@ import numpy as np
 import copy
 import time
 import json
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
-from llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model  # type: ignore[attr-defined]
 
 
 class Model:
@@ -91,9 +91,9 @@ class Model:
                 \"parameters\": {{"a": 19.0, "b": 5.0}}.\
             Rules: \
                 1. If a parameter type is a number cast it to a float always.\
-                3. Output ONLY the raw JSON. \
-                4. If a parameter key is regex the value\
-                must be a valid REGEX sequence of characters\
+                2. Output ONLY the raw JSON. \
+                3. If a parameter key is regex the value \
+                    must be a valid REGEX sequence of characters\
             Input Text: \
         """
         self.const_prompt_ids = self.model.encode(const_prompt)[0].tolist()
@@ -116,7 +116,7 @@ class Model:
         self.input_ids.extend(self.model.encode(self.prompt)[0].tolist())
 
     def _stage_of_name(self, found_name: bool, next_token_id:
-                       Union[int, List[int]], stage: int) -> int:
+                       int, stage: int) -> int:
         """Extract the function name from the token, and inject the spliter
         token to the end of func name.
 
@@ -200,13 +200,14 @@ class Model:
         Extract the data that we need from the manager
         after parsing.
         """
+        func_ids: List[int] = list()
         for fn in self.manager.definition_functions:
             self.functions_data += f"\
 Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             self.resources[fn['name']] = []
             for name, value in fn['parameters'].items():
                 self.resources[fn['name']].append((name, value['type']))
-            func_ids: List[int] = self.model.encode(f"{fn['name']}\",")[0].tolist()
+            func_ids = self.model.encode(f"{fn['name']}\",")[0].tolist()
             self.vocab[fn['name']] = func_ids
             self.func_spliter_id = self.model.encode('",')[0].tolist()[0]
 
@@ -215,7 +216,7 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
 
     def _handle_func_name(
         self, logits: Any, found_name: bool, valid_vocab: Dict[str, List[int]]
-    ) -> Tuple[Union[int, List[int]], bool, Dict[str, List[int]]]:
+    ) -> Tuple[int, bool, Dict[str, List[int]]]:
         """Constrained decoding for function name, to make sure
         that next token is on function names.
 
@@ -250,37 +251,6 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
         if next_token_id == self.func_spliter_id:
             found_name = True
         return (next_token_id, found_name, valid_vocab)
-
-
-        # funcs_to_remove: List[str] = []
-        # matched: bool = False
-        # while True:
-        #     next_token_id: int = int(np.argmax(logits))
-        #     if not valid_vocab:
-        #         break
-        #     for name, ids in valid_vocab.items():
-        #         if len(ids) > 0 and ids[0] == next_token_id:
-        #             matched = True
-        #         else:
-        #             funcs_to_remove.append(name)
-        #     if matched:
-        #         if len(valid_vocab) == 1:
-        #             found_name = True
-        #             for func in valid_vocab:
-        #                 next_token_res: Union[int, List[int]] = valid_vocab[
-        #                     func]
-        #                 del valid_vocab[func]
-        #                 break
-        #             return (next_token_res, found_name, valid_vocab)
-        #         for func in funcs_to_remove:
-        #             del valid_vocab[func]
-        #         for func in valid_vocab:
-        #             valid_vocab[func].pop(0)
-        #         break
-        #     else:
-        #         logits[next_token_id] = -float('inf')
-        #         funcs_to_remove = []
-        # return (next_token_id, found_name, valid_vocab)
 
     def _handle_parameters(self, logits: Any, par_type: str) -> List[int]:
         """Constrained decoding of the parameters.
@@ -447,7 +417,7 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
                     self.input_ids)
 
                 if stage == 1:
-                    result: Tuple[int | list[int], bool, Dict[str, List[int]]
+                    result: Tuple[int, bool, Dict[str, List[int]]
                                   ] = self._handle_func_name(
                         logits, found_name, valid_vocab
                     )

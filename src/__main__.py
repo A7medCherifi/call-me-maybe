@@ -21,16 +21,12 @@ def main() -> None:
 
     parse.add_argument(
         "--input",
-        type=str,
         default="data/input/function_calling_tests.json",
-        help="Path to the input prompts JSON file."
         )
 
     parse.add_argument(
         "--output",
-        type=str,
         default="data/output/function_calls.json",
-        help="Path to save the output JSON file."
         )
 
     args = parse.parse_args()

@@ -10,6 +10,8 @@ dependencies = [
     "accelerate>=1.14.0",
     "fire>=0.7.1",
     "mypy>=2.2.0",
+    "numpy>=2.2.6",
+    "flake8>=7.3.0",
 ]
 
 [tool.uv.workspace]

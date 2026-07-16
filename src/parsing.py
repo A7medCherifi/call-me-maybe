@@ -9,6 +9,14 @@ class CallingFunction(BaseModel):
 
     @model_validator(mode='after')
     def strip_whitespaces(self) -> 'CallingFunction':
+        """function that check for white spaces and valid the string
+
+        Raises:
+            ValueError: "Invalid input"
+
+        Returns:
+            CallingFunction: CallingFunction
+        """
         if isinstance(self.prompt, str):
             value = self.prompt.strip()
             if not value:
@@ -30,6 +38,14 @@ class DefinitionFunction(BaseModel):
 
     @model_validator(mode='after')
     def strip_whitespaces(self) -> 'DefinitionFunction':
+        """function that check for white spaces and valid the string
+
+        Raises:
+            ValueError: "Invalid Function name"
+
+        Returns:
+            DefinitionFunction: DefinitionFunction
+        """
         if isinstance(self.name, str):
             value = self.name.strip()
             if not value or not value.isidentifier():
