@@ -31,7 +31,6 @@ class Model:
         self.func_name: str = ""
         self.current_token: str = ""
         self.par_value: str = ""
-
         self.number_value: str = ""
 
         self.vocab: Dict[str, List[int]] = dict()
@@ -42,6 +41,7 @@ class Model:
 
         self.input_ids: List[int] = list()
         self.const_prompt_ids: List[int] = list()
+        self.func_spliter_id: int = 0
 
     def __get_valid_digits(self, par_type: str) -> List[int]:
         """
@@ -129,17 +129,17 @@ class Model:
             int: stage
         """
         if found_name:
-            self.current_token = self.model.decode(next_token_id)
-            if '"' in self.current_token:
-                splited_token: str = self.current_token.split('"')[0].strip()
-            if ',' in self.current_token:
-                splited_token = self.current_token.split(',')[0].strip()
-            self.func_name += splited_token
+            # self.current_token = self.model.decode(next_token_id)
+            # if '",' in self.current_token:
+            #     splited_token: str = self.current_token.split('"')[0].strip()
+            # if ',' in self.current_token:
+            #     splited_token = self.current_token.split(',')[0].strip()
+            # self.func_name += splited_token
+            # self.input_ids.extend(next_token_id)
             spliter_id: List[int] = self.model.encode('", ')[0].tolist()
-            self.input_ids.extend(next_token_id)
             self.input_ids.extend(spliter_id)
-            self.output_text += splited_token + '", '
-            self.print_text += splited_token + '", '
+            self.output_text += '", '
+            self.print_text += '", '
             stage = 2
         else:
             self.current_token = self.model.decode([next_token_id])
@@ -206,8 +206,9 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             self.resources[fn['name']] = []
             for name, value in fn['parameters'].items():
                 self.resources[fn['name']].append((name, value['type']))
-            func_ids: List[int] = self.model.encode(f"{fn['name']},")[0].tolist()
+            func_ids: List[int] = self.model.encode(f"{fn['name']}\",")[0].tolist()
             self.vocab[fn['name']] = func_ids
+            self.func_spliter_id = self.model.encode('",')[0].tolist()[0]
 
         for element in self.manager.prompts_calling:
             self.all_prompts.append(element['prompt'])
@@ -226,35 +227,60 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
         Returns:
             tuple: (next_token_id, found_name, valid_vocab)
         """
-        funcs_to_remove: List[str] = []
-        matched: bool = False
-        while True:
-            next_token_id: int = int(np.argmax(logits))
-            if not valid_vocab:
-                break
-            for name, ids in valid_vocab.items():
-                if len(ids) > 0 and ids[0] == next_token_id:
-                    matched = True
-                else:
-                    funcs_to_remove.append(name)
-            if matched:
-                if len(valid_vocab) == 1:
-                    found_name = True
-                    for func in valid_vocab:
-                        next_token_res: Union[int, List[int]] = valid_vocab[
-                            func]
-                        del valid_vocab[func]
-                        break
-                    return (next_token_res, found_name, valid_vocab)
-                for func in funcs_to_remove:
-                    del valid_vocab[func]
-                for func in valid_vocab:
-                    valid_vocab[func].pop(0)
-                break
+        valid_tokens = list()
+        unwanted_funcs = []
+        logits = np.array(logits)
+        for name, ids in valid_vocab.items():
+            if len(ids) > 0:
+                if ids[0] not in valid_tokens:
+                    valid_tokens.append(ids[0])
             else:
-                logits[next_token_id] = -float('inf')
-                funcs_to_remove = []
+                unwanted_funcs.append(name)
+        masked = np.full_like(logits, -float('inf'))
+        valid_array = np.array(valid_tokens)
+        masked[valid_array] = logits[valid_array]
+        next_token_id = int(np.argmax(masked))
+        for name, ids in valid_vocab.items():
+            if len(ids) > 0 and ids[0] == next_token_id:
+                valid_vocab[name].pop(0)
+            else:
+                unwanted_funcs.append(name)
+        for func in unwanted_funcs:
+            del valid_vocab[func]
+        if next_token_id == self.func_spliter_id:
+            found_name = True
         return (next_token_id, found_name, valid_vocab)
+
+
+        # funcs_to_remove: List[str] = []
+        # matched: bool = False
+        # while True:
+        #     next_token_id: int = int(np.argmax(logits))
+        #     if not valid_vocab:
+        #         break
+        #     for name, ids in valid_vocab.items():
+        #         if len(ids) > 0 and ids[0] == next_token_id:
+        #             matched = True
+        #         else:
+        #             funcs_to_remove.append(name)
+        #     if matched:
+        #         if len(valid_vocab) == 1:
+        #             found_name = True
+        #             for func in valid_vocab:
+        #                 next_token_res: Union[int, List[int]] = valid_vocab[
+        #                     func]
+        #                 del valid_vocab[func]
+        #                 break
+        #             return (next_token_res, found_name, valid_vocab)
+        #         for func in funcs_to_remove:
+        #             del valid_vocab[func]
+        #         for func in valid_vocab:
+        #             valid_vocab[func].pop(0)
+        #         break
+        #     else:
+        #         logits[next_token_id] = -float('inf')
+        #         funcs_to_remove = []
+        # return (next_token_id, found_name, valid_vocab)
 
     def _handle_parameters(self, logits: Any, par_type: str) -> List[int]:
         """Constrained decoding of the parameters.
@@ -430,7 +456,6 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
                                                 stage)
                 elif stage == 2:
                     stage = self._stage_of_inject_parameter(stage)
-
                 elif stage == 3:
                     stage = self._stage_of_inject_key(i, stage)
 

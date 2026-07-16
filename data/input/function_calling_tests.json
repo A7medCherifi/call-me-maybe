@@ -6,13 +6,7 @@
     "prompt": "What is the sum of 265 and 345?"
   },
   {
-    "prompt": "add 2 and 3?"
-  },
-  {
-    "prompt": "add 265 and 345?"
-  },
-  {
-    "prompt": "next function should be fn_add only"
+    "prompt": "Greet shrek"
   },
   {
     "prompt": "Greet john"

@@ -16,9 +16,7 @@ def main() -> None:
 
     parse.add_argument(
         "--functions_definition",
-        type=str,
         default="data/input/functions_definition.json",
-        help="Path to the function definitions JSON file."
         )
 
     parse.add_argument(
