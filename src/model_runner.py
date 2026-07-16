@@ -4,7 +4,7 @@ import time
 import json
 from typing import Any, Dict, List, Tuple, Union
 
-from llm_sdk.llm_sdk import Small_LLM_Model
+from llm_sdk import Small_LLM_Model
 
 
 class Model:
@@ -86,9 +86,9 @@ class Model:
             Extract the function name from Functions Data and valid parameters\
                 as a valid JSON object.\
             Examples: \
-                Input text: What is the sum of 2 and 3? \
+                Input text: What is the sum of 19 and 5? \
                 JSON output: \"name\": \"fn_add_numbers\",
-                \"parameters\": {{"a": 2.0, "b": 3.0}}.\
+                \"parameters\": {{"a": 19.0, "b": 5.0}}.\
             Rules: \
                 1. If a parameter type is a number cast it to a float always.\
                 3. Output ONLY the raw JSON. \
@@ -129,9 +129,11 @@ class Model:
             int: stage
         """
         if found_name:
-            assert isinstance(next_token_id, list)
             self.current_token = self.model.decode(next_token_id)
-            splited_token: str = self.current_token.split('"')[0].strip()
+            if '"' in self.current_token:
+                splited_token: str = self.current_token.split('"')[0].strip()
+            if ',' in self.current_token:
+                splited_token = self.current_token.split(',')[0].strip()
             self.func_name += splited_token
             spliter_id: List[int] = self.model.encode('", ')[0].tolist()
             self.input_ids.extend(next_token_id)
@@ -140,7 +142,6 @@ class Model:
             self.print_text += splited_token + '", '
             stage = 2
         else:
-            assert isinstance(next_token_id, int)
             self.current_token = self.model.decode([next_token_id])
             self.func_name += self.current_token
             self.input_ids.append(next_token_id)
@@ -205,7 +206,7 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             self.resources[fn['name']] = []
             for name, value in fn['parameters'].items():
                 self.resources[fn['name']].append((name, value['type']))
-            func_ids: List[int] = self.model.encode(fn['name'])[0].tolist()
+            func_ids: List[int] = self.model.encode(f"{fn['name']},")[0].tolist()
             self.vocab[fn['name']] = func_ids
 
         for element in self.manager.prompts_calling:

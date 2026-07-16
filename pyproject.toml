@@ -1,0 +1,19 @@
+[project]
+name = "call-me-maybe"
+version = "0.1.0"
+description = "Call me maybe project toml"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "llm_sdk",
+    "pydantic>=2.13.4",
+    "accelerate>=1.14.0",
+    "fire>=0.7.1",
+    "mypy>=2.2.0",
+]
+
+[tool.uv.workspace]
+members = ["llm_sdk"]
+
+[tool.uv.sources]
+llm-sdk = { workspace = true }
