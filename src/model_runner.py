@@ -4,7 +4,7 @@ import time
 import json
 from typing import Any, Dict, List, Tuple, Union
 
-from llm_sdk import Small_LLM_Model
+from llm_sdk.llm_sdk import Small_LLM_Model
 
 
 class Model:
@@ -14,7 +14,6 @@ class Model:
     structured grammar constraints to guide the llm model into producing\
     guaranteed valid answer and valid JSON output matching predefined schemas.\
     """
-
     def __init__(self, manager: Any) -> None:
         """Initializes the Model with necessary states.\
 
@@ -351,19 +350,13 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             sep_id: List[int] = self.model.encode(sep_str)[0].tolist()
             self.input_ids.extend(sep_id)
             if par_type == 'number':
-                try:
-                    value_f: float = float(self.number_value)
-                    self.output_text += str(value_f)
-                except ValueError:
-                    self.output_text += self.number_value
+                value_f: float = float(self.number_value)
+                self.output_text += str(value_f)
                 self.number_value = ""
 
             elif par_type == 'integer':
-                try:
-                    value_i: int = int(self.number_value)
-                    self.output_text += str(value_i)
-                except ValueError:
-                    self.output_text += self.number_value
+                value_i: int = int(self.number_value)
+                self.output_text += str(value_i)
                 self.number_value = ""
 
             elif par_type == 'string':
@@ -376,18 +369,12 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
 
         else:
             if par_type == 'number':
-                try:
-                    value_f = float(self.number_value)
-                    self.output_text += str(value_f)
-                except ValueError:
-                    self.output_text += self.number_value
+                value_f = float(self.number_value)
+                self.output_text += str(value_f)
                 self.number_value = ""
             elif par_type == 'integer':
-                try:
-                    value_i = int(self.number_value)
-                    self.output_text += str(value_i)
-                except ValueError:
-                    self.output_text += self.number_value
+                value_i = int(self.number_value)
+                self.output_text += str(value_i)
                 self.number_value = ""
             elif par_type == 'string':
                 res = json.dumps(self.par_value)
@@ -429,7 +416,6 @@ Name: {fn['name']} | Parameters: {fn['parameters']}\n"
             found_name: bool = False
 
             while stage != 5:
-                assert self.input_ids is not None
                 logits: List[float] = self.model.get_logits_from_input_ids(
                     self.input_ids)
 

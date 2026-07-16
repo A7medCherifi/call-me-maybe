@@ -3,3 +3,4 @@ __pycache__/
 .venv/
 data/output/
 *.pyc
+.DS_Store
