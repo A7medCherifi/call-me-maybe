@@ -1,77 +1,35 @@
 [
   {
-    "prompt": "Replace all vowels in 'Programming is fun parameters' with \"\\\""
+    "prompt": "What is the sum of 2 and 3?"
   },
   {
-    "prompt": "Replace all vowels in 'Programming is fun parameters' with \"\\\\\""
+    "prompt": "What is the sum of 265 and 345?"
   },
   {
-    "prompt": "Replace all vowels in 'Programming is fun parameters' with \"\\\"\\\""
+    "prompt": "Greet shrek"
   },
   {
-    "prompt": "Replace every digit in 'abc123xyz' using regex \"\\\\d+\" with \"#\""
+    "prompt": "Greet john"
   },
   {
-    "prompt": "Replace every word boundary in 'the cat sat' using regex \"\\\\bcat\\\\b\" with \"dog\""
+    "prompt": "Reverse the string 'hello'"
   },
   {
-    "prompt": "Replace every tab \"\\\\t\" with four spaces"
+    "prompt": "Reverse the string 'world'"
   },
   {
-    "prompt": "Replace every newline \"\\\\n\" with a space"
+    "prompt": "What is the square root of 16?"
   },
   {
-    "prompt": "Replace \"C:\\\\Users\\\\Admin\" with \"/home/admin\""
+    "prompt": "Calculate the square root of 144"
   },
   {
-    "prompt": "Replace \"\\\\\\\\server\\\\share\" with \"/mnt/share\""
+    "prompt": "Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"
   },
   {
-    "prompt": "Replace the string \"\\\"Hello\\\"\" with \"Hi\""
+    "prompt": "Replace all vowels in 'Programming is fun' with asterisks"
   },
   {
-    "prompt": "Replace the string \"\\\\\\\"\" with \"!\""
-  },
-  {
-    "prompt": "Replace the regex \"[aeiouAEIOU]\" with \"*\""
-  },
-  {
-    "prompt": "Replace the regex \"[A-Z]+\\\\d*\" with \"TOKEN\""
-  },
-  {
-    "prompt": "Replace the string \"\\\\\\\\\" with \"\\\\\""
-  },
-  {
-    "prompt": "Replace the string \"\\\\\" with \"\\\\\\\\\""
-  },
-  {
-    "prompt": "Replace the Unicode escape \"\\\\u00E9\" with \"e\""
-  },
-  {
-    "prompt": "Replace \"{\\\"name\\\":\\\"John\\\"}\" with \"{}\""
-  },
-  {
-    "prompt": "Replace every occurrence of \"\\\\\" in \"C:\\\\Windows\\\\System32\" with \"/\""
-  },
-  {
-    "prompt": "Replace every occurrence of \"\\\"\" with \"'\""
-  },
-  {
-    "prompt": "Replace every occurrence of \"\\\\\\\\\\\\\" with \"X\""
-  },
-  {
-    "prompt": "Replace every occurrence of \"\\\\\\\\\\\\\\\\\" with \"Y\""
-  },
-  {
-    "prompt": "Replace \"abc\\\\\" with \"xyz\""
-  },
-  {
-    "prompt": "Replace \"\\\\abc\" with \"xyz\""
-  },
-  {
-    "prompt": "Replace every match of regex \"\\\\w+\\\\s+\\\\w+\" with \"PAIR\""
-  },
-  {
-    "prompt": "Replace every match of regex \"\\\\d{2,4}\" with \"NUM\""
+    "prompt": "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat'"
   }
 ]

@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Set
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
 
@@ -66,7 +66,7 @@ def parse_calling_function(file_name: str) -> List[Dict[str, Any]]:
         valid: List[Dict[str, Any]] = []
         for e in data:
             if len(e) != 1:
-                raise Exception("Many prompts in one Dict!, Expected only 1")
+                raise ValueError("Many prompts in one Dict!, Expected only 1")
             CallingFunction(**e)
             valid.append(e)
         return valid
@@ -89,9 +89,13 @@ def parse_definition_function(file_name: str) -> List[Dict[str, Any]]:
         with open(file_name, 'r') as f:
             data: List[Dict[str, Any]] = json.load(f)
         valid: List[Dict[str, Any]] = []
+        func_names: Set[str] = set()
         for e in data:
+            if e['name'] in func_names:
+                raise ValueError("Duplicated function name")
             DefinitionFunction(**e)
             valid.append(e)
+            func_names.add(e['name'])
         return valid
     except ValidationError as e:
         print(f"[ERROR]: {e.errors()[0].get('msg')}")

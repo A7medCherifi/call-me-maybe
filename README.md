@@ -47,7 +47,7 @@ This reduces invalid outputs and makes integration with tools safer.
 Main implementation choices:
 
 #### Stage 1: Forcing a Valid Function Name
-First, the LLM must choose which function to call. i restrict its vocabulary so it can only output tokens that match the predefined function names provided in my initial data. If the model tries to hallucinate a function that doesn't exist, the algorithm blocks that token and forces it to pick a valid one.
+I save all of function names and encode them, and each time i keep getting the first element of the function ids, and mask everything else and let the llm to chose one of those ids, and so on till it hets the seperator then i can confirm that the full function name get generated.
 
 #### Stage 2: Injecting the JSON Scaffolding
 Once the valid function name is selected, i don't even wait for the LLM to format the JSON. i step in and i use a concept that called Token injection by manually inject the structural tokens like: `"parameters": {` directly into the input/output stream. This guarantees perfect syntax without wasting compute.

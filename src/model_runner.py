@@ -129,13 +129,6 @@ class Model:
             int: stage
         """
         if found_name:
-            # self.current_token = self.model.decode(next_token_id)
-            # if '",' in self.current_token:
-            #     splited_token: str = self.current_token.split('"')[0].strip()
-            # if ',' in self.current_token:
-            #     splited_token = self.current_token.split(',')[0].strip()
-            # self.func_name += splited_token
-            # self.input_ids.extend(next_token_id)
             spliter_id: List[int] = self.model.encode('", ')[0].tolist()
             self.input_ids.extend(spliter_id)
             self.output_text += '", '
